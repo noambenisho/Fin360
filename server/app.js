@@ -11,6 +11,7 @@ connectDB();
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
 
 app.get('/', (req, res) => res.send('Fin360 API running'));
 
