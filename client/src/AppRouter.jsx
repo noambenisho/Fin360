@@ -6,6 +6,7 @@ import Tax from "./pages/Tax";
 import Mortgage from "./pages/Mortgage";
 import Investments from "./pages/Investments";
 import Profile from "./pages/Profile";
+import FinancialNews from "./components/FinancialNews";
 
 export default function AppRouter() {
   return (
@@ -17,6 +18,7 @@ export default function AppRouter() {
       <Route path="/mortgage" element={<Mortgage />} />
       <Route path="/investments" element={<Investments />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/news" element={<FinancialNews />} />
     </Routes>
   );
 }

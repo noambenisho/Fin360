@@ -1,9 +1,8 @@
 import express from "express";
 import Profile from "../models/Profile.js";
+import profileController from "../controllers/profileController.js";
 
-const express = require("express");
 const router = express.Router();
-const profileController = require("../controllers/profileController");
 
 router.get("/:userId", profileController.getProfile);
 router.post("/", profileController.createProfile);
@@ -17,5 +16,4 @@ router.get("/", async (req, res) => {
   }
 });
 
-module.exports = router;
-
+export default router;

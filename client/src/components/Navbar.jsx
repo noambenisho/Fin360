@@ -1,28 +1,22 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
+import { Link } from 'react-router-dom';
 
-function Navbar() {
-  const [open, setOpen] = useState(false);
-
+export default function Navbar() {
   return (
-    <nav style={{ padding: "1rem", background: "#eee" }}>
-      <button onClick={() => setOpen(!open)}>
-        ☰ תפריט
-      </button>
-
-      {open && (
-        <ul style={{ listStyle: "none", padding: 0, marginTop: "1rem" }}>
-          <li><Link to="/" onClick={() => setOpen(false)}>בית</Link></li>
-          <li><Link to="/login" onClick={() => setOpen(false)}>התחברות</Link></li>
-          <li><Link to="/register" onClick={() => setOpen(false)}>הרשמה</Link></li>
-          <li><Link to="/tax" onClick={() => setOpen(false)}>חישוב מס</Link></li>
-          <li><Link to="/mortgage" onClick={() => setOpen(false)}>משכנתאות</Link></li>
-          <li><Link to="/investments" onClick={() => setOpen(false)}>השקעות</Link></li>
-          <li><Link to="/profile" onClick={() => setOpen(false)}>פרופיל</Link></li>
-        </ul>
-      )}
-    </nav>
+    <AppBar position="static">
+      <Container maxWidth="xl">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Fin360
+          </Typography>
+          <Button color="inherit" component={Link} to="/">Home</Button>
+          <Button color="inherit" component={Link} to="/tax">Tax Calculator</Button>
+          <Button color="inherit" component={Link} to="/mortgage">Mortgage vs Investments</Button>
+          <Button color="inherit" component={Link} to="/investments">Income & Expenses</Button>
+          <Button color="inherit" component={Link} to="/profile">Profile</Button>
+          <Button color="inherit" component={Link} to="/login">Login</Button>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 }
-
-export default Navbar;
