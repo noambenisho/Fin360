@@ -1,3 +1,5 @@
+import profileRoutes from "./routes/profileRoutes.js";
+
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
@@ -12,10 +14,9 @@ connectDB();
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
+app.use("/api/profiles", profileRoutes);
 
 app.get('/', (req, res) => res.send('Fin360 API running'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
