@@ -1,9 +1,12 @@
-const express = require('express');
+import express from "express";
+import authMiddleware from "../middleware/authMiddleware.js"; 
+import UserController from "../controllers/userController.js"; 
+console.log(UserController); // לבדוק שהאובייקט אכן קיים
+
+
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware'); // ניצור בהמשך
-const UserController = require('../controllers/userController'); // ניצור אותו בעתיד
 
 // דוגמה ל-route שמוגן ע"י אימות JWT
 router.get('/profile', authMiddleware, UserController.getProfile);
 
-module.exports = router;
+export default router;

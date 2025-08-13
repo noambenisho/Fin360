@@ -1,12 +1,12 @@
 import express from "express";
+import { getProfile, createProfile, updateProfile } from "../controllers/profileController.js";
 import Profile from "../models/Profile.js";
-import profileController from "../controllers/profileController.js";
 
 const router = express.Router();
 
-router.get("/:userId", profileController.getProfile);
-router.post("/", profileController.createProfile);
-router.put("/:userId", profileController.updateProfile);
+router.get("/:userId", getProfile);
+router.post("/", createProfile);
+router.put("/:userId", updateProfile);
 router.get("/", async (req, res) => {
   try {
     const profiles = await Profile.find();

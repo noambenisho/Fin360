@@ -1,7 +1,7 @@
-const Profile = require("../models/Profile");
+import Profile from "../models/Profile.js";
 
 // GET /api/profile/:userId
-exports.getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ userId: req.params.userId });
     if (!profile) return res.status(404).json({ message: "Profile not found" });
@@ -12,7 +12,7 @@ exports.getProfile = async (req, res) => {
 };
 
 // POST /api/profile/
-exports.createProfile = async (req, res) => {
+export const createProfile = async (req, res) => {
   const { userId, monthlyIncome, monthlyExpenses, savings, monthlyInvestment, otherAssets, liabilities } = req.body;
 
   try {
@@ -33,7 +33,7 @@ exports.createProfile = async (req, res) => {
 };
 
 // PUT /api/profile/:userId
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const profile = await Profile.findOneAndUpdate(
       { userId: req.params.userId },

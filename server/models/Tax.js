@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const taxSchema = new mongoose.Schema(
   {
@@ -10,4 +10,4 @@ const taxSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Tax", taxSchema);
+export default mongoose.model("Tax", taxSchema);

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const mortgageSchema = new mongoose.Schema(
   {
@@ -12,4 +12,4 @@ const mortgageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Mortgage", mortgageSchema);
+export default mongoose.model("Mortgage", mortgageSchema);
