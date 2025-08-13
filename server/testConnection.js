@@ -1,5 +1,7 @@
-const { MongoClient } = require('mongodb');
-require('dotenv').config();
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const uri = process.env.MONGO_URI;
 

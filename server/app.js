@@ -22,6 +22,8 @@ app.use("/api/profiles", profileRoutes);
 app.get("/", (req, res) => res.send("Fin360 API running"));
 //app.get("/ping", (req, res) => res.send("pong"));
 
+import debugRoutes from "./routes/debugRoutes.js";
+app.use("/api/_debug", debugRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
