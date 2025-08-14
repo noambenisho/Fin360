@@ -102,27 +102,46 @@ export default function Investments() {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingId) {
-      // Update existing record
-      setRecords(records.map(record => 
-        record.id === editingId ? { ...formData, id: editingId } : record
-      ));
-    } else {
-      // Add new record
-      setRecords([...records, { ...formData, id: Date.now() }]);
-    }
-    resetForm();
+const handleSubmit = (e) => {
+  e.preventDefault();
+  const newRecord = {
+    ...formData,
+    amount: parseFloat(formData.amount),
+    id: editingId || Date.now()
   };
 
-  const handleEdit = (id) => {
-    const recordToEdit = records.find(record => record.id === id);
-    if (recordToEdit) {
-      setFormData(recordToEdit);
-      setEditingId(id);
-    }
-  };
+  if (editingId) {
+    // Update existing record
+    setRecords(records.map(record => 
+      record.id === editingId ? newRecord : record
+    ));
+    // Show success feedback (optional)
+    alert('Record updated successfully!');
+  } else {
+    // Add new record
+    setRecords([...records, newRecord]);
+    // Show success feedback (optional)
+    alert('Record added successfully!');
+  }
+
+  resetForm();
+  setTabValue(0); // Switch back to Transactions tab
+};
+
+const handleEdit = (id) => {
+  const recordToEdit = records.find(record => record.id === id);
+  if (recordToEdit) {
+    setFormData({
+      amount: recordToEdit.amount.toString(),
+      category: recordToEdit.category,
+      date: recordToEdit.date,
+      description: recordToEdit.description,
+      type: recordToEdit.type || 'expense'
+    });
+    setEditingId(id);
+    setTabValue(2); // Switch to the Add/Edit tab
+  }
+};
 
   const handleDelete = (id) => {
     setRecords(records.filter(record => record.id !== id));
@@ -183,6 +202,8 @@ export default function Investments() {
         </Tabs>
       </Box>
       
+      
+
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={3}>
           <Grid item xs={12}>

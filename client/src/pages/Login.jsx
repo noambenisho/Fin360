@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  TextField, 
-  Button, 
-  Typography, 
-  Checkbox, 
-  FormControlLabel, 
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Checkbox,
+  FormControlLabel,
   Paper,
-  Grid,
   Avatar,
-  CssBaseline
+  CssBaseline,
+  Grid
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { loginUser } from '../services/authService';
@@ -38,95 +38,104 @@ export default function Login() {
   };
 
   return (
-    <Grid container component="main" sx={{ height: '100vh' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(to right, #f0f4f8, #d9e4ec)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2
+      }}
+    >
       <CssBaseline />
-      <Grid
-        item
-        xs={false}
-        sm={4}
-        md={7}
+      <Paper
+        elevation={6}
         sx={{
-          backgroundImage: 'url(https://source.unsplash.com/random?finance)',
-          backgroundRepeat: 'no-repeat',
-          backgroundColor: (t) =>
-            t.palette.mode === 'light' ? t.palette.grey[50] : t.palette.grey[900],
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          p: 4,
+          borderRadius: 4,
+          width: '100%',
+          maxWidth: 400,
+          backgroundColor: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}
-      />
-      <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
-        <Box
-          sx={{
-            my: 8,
-            mx: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            Sign in
-          </Typography>
-          <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <FormControlLabel
-              control={<Checkbox value={rememberMe} color="primary" onChange={(e) => setRememberMe(e.target.checked)} />}
-              label="Remember me"
-            />
-            {error && (
-              <Typography color="error" variant="body2">
-                {error}
-              </Typography>
-            )}
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Sign In
-            </Button>
-            <Grid container>
-              <Grid item xs>
-                <Link to="/forgot-password" variant="body2">
-                  Forgot password?
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link to="/register" variant="body2">
-                  {"Don't have an account? Sign Up"}
-                </Link>
-              </Grid>
+      >
+        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+        <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
+          Sign In
+        </Typography>
+        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Remember me"
+          />
+          {error && (
+            <Typography color="error" variant="body2">
+              {error}
+            </Typography>
+          )}
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{
+              mt: 3,
+              mb: 2,
+              py: 1.5,
+              fontSize: '1rem',
+              borderRadius: 2
+            }}
+          >
+            Sign In
+          </Button>
+          <Grid container justifyContent="space-between">
+            <Grid item>
+              <Link to="/forgot-password" style={{ textDecoration: 'none', color: '#1976d2' }}>
+                Forgot password?
+              </Link>
             </Grid>
-          </Box>
+            <Grid item>
+              <Link to="/register" style={{ textDecoration: 'none', color: '#1976d2' }}>
+                Don't have an account? Sign Up
+              </Link>
+            </Grid>
+          </Grid>
         </Box>
-      </Grid>
-    </Grid>
+      </Paper>
+    </Box>
   );
 }
