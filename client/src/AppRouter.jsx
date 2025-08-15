@@ -7,6 +7,9 @@ import Mortgage from "./pages/Mortgage";
 import Investments from "./pages/Investments";
 import Profile from "./pages/Profile";
 import FinancialNews from "./components/FinancialNews";
+import CrudTester from "./pages/CrudTester";
+
+
 
 export default function AppRouter() {
   return (
@@ -19,6 +22,10 @@ export default function AppRouter() {
       <Route path="/investments" element={<Investments />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/news" element={<FinancialNews />} />
+      <Route path="/crud-test" element={<CrudTester />} />
     </Routes>
   );
 }
+
+
+
