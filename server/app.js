@@ -5,6 +5,8 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import financeRoutes from "./routes/financeRoutes.js";
+
 
 dotenv.config();
 
@@ -18,6 +20,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/profiles", profileRoutes);
+app.use("/api/finance", financeRoutes);
 
 app.get("/", (req, res) => res.send("Fin360 API running"));
 //app.get("/ping", (req, res) => res.send("pong"));
