@@ -69,7 +69,7 @@ export default function Navbar() {
             <Button color="inherit" component={Link} to="/mortgage">
               Mortgage vs Investments
             </Button>
-            <Button color="inherit" component={Link} to="/investments">
+            <Button color="inherit" component={Link} to="/income-expenses">
               Income & Expenses
             </Button>
             {user && (

@@ -10,7 +10,7 @@ import {
   Paper,
   Avatar,
   CssBaseline,
-  Grid,
+  Grid
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { loginUser } from "../services/authService";

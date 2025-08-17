@@ -4,12 +4,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Tax from "./pages/Tax";
 import Mortgage from "./pages/Mortgage";
-import Investments from "./pages/Investments";
+import IncomeExpenses from "./pages/Income&Expenses";
 import Profile from "./pages/Profile";
 import FinancialNews from "./components/FinancialNews";
 import CrudTester from "./pages/CrudTester";
-
-
+import PrivateRoute from "./routes/PrivateRoute";
 
 export default function AppRouter() {
   return (
@@ -19,13 +18,17 @@ export default function AppRouter() {
       <Route path="/register" element={<Register />} />
       <Route path="/tax" element={<Tax />} />
       <Route path="/mortgage" element={<Mortgage />} />
-      <Route path="/investments" element={<Investments />} />
+      <Route
+        path="/income-expenses"
+        element={
+          <PrivateRoute>
+            <IncomeExpenses />
+          </PrivateRoute>
+        }
+      />
       <Route path="/profile" element={<Profile />} />
       <Route path="/news" element={<FinancialNews />} />
       <Route path="/crud-test" element={<CrudTester />} />
     </Routes>
   );
 }
-
-
-

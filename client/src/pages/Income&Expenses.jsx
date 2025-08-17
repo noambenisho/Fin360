@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -21,10 +21,17 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
-} from '@mui/material';
-import { PieChart, LineChart } from '@mui/x-charts';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+  InputLabel,
+  Snackbar,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
+import { PieChart, LineChart } from "@mui/x-charts";
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+} from "@mui/icons-material";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -37,48 +44,52 @@ function TabPanel(props) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
 
 const categories = [
-  'Housing',
-  'Food',
-  'Transportation',
-  'Utilities',
-  'Healthcare',
-  'Entertainment',
-  'Education',
-  'Savings',
-  'Other'
+  "Housing",
+  "Food",
+  "Transportation",
+  "Utilities",
+  "Healthcare",
+  "Entertainment",
+  "Education",
+  "Savings",
+  "Other",
 ];
 
-const sampleData = [
-  { id: 1, amount: 1500, category: 'Housing', date: '2023-01-15', description: 'Rent' },
-  { id: 2, amount: 400, category: 'Food', date: '2023-01-16', description: 'Groceries' },
-  { id: 3, amount: 200, category: 'Transportation', date: '2023-01-17', description: 'Gas' },
-  { id: 4, amount: 3000, category: 'Income', date: '2023-01-01', description: 'Salary' },
-  { id: 5, amount: 100, category: 'Entertainment', date: '2023-01-20', description: 'Movie' }
-];
+import { useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+} from "../services/financeService";
 
-export default function Investments() {
+export default function IncomeExpenses() {
+  const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
-  const [records, setRecords] = useState(sampleData);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [feedback, setFeedback] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [formData, setFormData] = useState({
-    amount: '',
-    category: '',
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    type: 'expense'
+    amount: "",
+    category: "",
+    date: new Date().toISOString().split("T")[0],
+    description: "",
+    type: "expense",
   });
   const [filter, setFilter] = useState({
-    category: '',
-    month: ''
+    category: "",
+    month: "",
   });
   const [editingId, setEditingId] = useState(null);
 
@@ -90,7 +101,7 @@ export default function Investments() {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -98,111 +109,172 @@ export default function Investments() {
     const { name, value } = e.target;
     setFilter({
       ...filter,
-      [name]: value
+      [name]: value,
     });
   };
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-  const newRecord = {
-    ...formData,
-    amount: parseFloat(formData.amount),
-    id: editingId || Date.now()
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        setLoading(true);
+        const data = await getTransactions();
+        setRecords(data);
+      } catch (err) {
+        setError(err.message);
+        console.error("Failed to load transactions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadTransactions();
+    }
+  }, [user]);
+
+  const showFeedback = (message, severity = "success") => {
+    setFeedback({ open: true, message, severity });
   };
 
-  if (editingId) {
-    // Update existing record
-    setRecords(records.map(record => 
-      record.id === editingId ? newRecord : record
-    ));
-    // Show success feedback (optional)
-    alert('Record updated successfully!');
-  } else {
-    // Add new record
-    setRecords([...records, newRecord]);
-    // Show success feedback (optional)
-    alert('Record added successfully!');
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const newRecord = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        userId: user.id,
+      };
 
-  resetForm();
-  setTabValue(0); // Switch back to Transactions tab
-};
+      const savedRecord = await addTransaction(newRecord);
+      setRecords((prev) => [...prev, savedRecord]);
+      resetForm();
+      setTabValue(0); // Switch back to Transactions tab
+      showFeedback("Transaction added successfully");
+    } catch (err) {
+      setError(err.message);
+      showFeedback(err.message || "Failed to save transaction", "error");
+      console.error("Failed to save transaction:", err);
+    }
+  };
 
-const handleEdit = (id) => {
-  const recordToEdit = records.find(record => record.id === id);
-  if (recordToEdit) {
-    setFormData({
-      amount: recordToEdit.amount.toString(),
-      category: recordToEdit.category,
-      date: recordToEdit.date,
-      description: recordToEdit.description,
-      type: recordToEdit.type || 'expense'
-    });
-    setEditingId(id);
-    setTabValue(2); // Switch to the Add/Edit tab
-  }
-};
+  const handleEdit = (id) => {
+    const recordToEdit = records.find((record) => record.id === id);
+    if (recordToEdit) {
+      setFormData({
+        amount: recordToEdit.amount.toString(),
+        category: recordToEdit.category,
+        date: recordToEdit.date,
+        description: recordToEdit.description,
+        type: recordToEdit.type || "expense",
+      });
+      setEditingId(id);
+      setTabValue(2); // Switch to the Add/Edit tab
+    }
+  };
 
-  const handleDelete = (id) => {
-    setRecords(records.filter(record => record.id !== id));
-    if (editingId === id) resetForm();
+  const handleDelete = async (id) => {
+    try {
+      await deleteTransaction(id);
+      setRecords(records.filter((record) => record._id !== id));
+      if (editingId === id) resetForm();
+      showFeedback("Transaction deleted successfully");
+    } catch (err) {
+      setError(err.message);
+      showFeedback(err.message || "Failed to delete transaction", "error");
+      console.error("Failed to delete transaction:", err);
+    }
   };
 
   const resetForm = () => {
     setFormData({
-      amount: '',
-      category: '',
-      date: new Date().toISOString().split('T')[0],
-      description: '',
-      type: 'expense'
+      amount: "",
+      category: "",
+      date: new Date().toISOString().split("T")[0],
+      description: "",
+      type: "expense",
     });
     setEditingId(null);
   };
 
-  const filteredRecords = records.filter(record => {
-    const matchesCategory = !filter.category || record.category === filter.category;
+  const filteredRecords = records.filter((record) => {
+    const matchesCategory =
+      !filter.category || record.category === filter.category;
     const matchesMonth = !filter.month || record.date.startsWith(filter.month);
     return matchesCategory && matchesMonth;
   });
 
-  const expensesByCategory = categories.map(category => {
-    const total = filteredRecords
-      .filter(r => r.category === category && r.type === 'expense')
-      .reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    return { category, total };
-  }).filter(item => item.total > 0);
+  const expensesByCategory = categories
+    .map((category) => {
+      const total = filteredRecords
+        .filter((r) => r.category === category && r.type === "expense")
+        .reduce((sum, r) => sum + parseFloat(r.amount), 0);
+      return { category, total };
+    })
+    .filter((item) => item.total > 0);
 
   const monthlyData = Array.from({ length: 12 }, (_, month) => {
-    const monthStr = (month + 1).toString().padStart(2, '0');
+    const monthStr = (month + 1).toString().padStart(2, "0");
     const year = new Date().getFullYear();
     const monthKey = `${year}-${monthStr}`;
-    
+
     const income = filteredRecords
-      .filter(r => r.date.startsWith(monthKey) && r.type === 'income')
+      .filter((r) => r.date.startsWith(monthKey) && r.type === "income")
       .reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    
+
     const expenses = filteredRecords
-      .filter(r => r.date.startsWith(monthKey) && r.type === 'expense')
+      .filter((r) => r.date.startsWith(monthKey) && r.type === "expense")
       .reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    
+
     return { month: monthKey, income, expenses, net: income - expenses };
   });
+
+  if (!user) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <Typography variant="h5">Please log in to access this page.</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" gutterBottom>
         Income & Expenses Tracker
       </Typography>
-      
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      <Snackbar
+        open={feedback.open}
+        autoHideDuration={6000}
+        onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert
+          onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
+          severity={feedback.severity}
+          sx={{ width: "100%" }}
+        >
+          {feedback.message}
+        </Alert>
+      </Snackbar>
+
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Transactions" />
           <Tab label="Charts" />
           <Tab label="Add Record" />
         </Tabs>
       </Box>
-      
-      
 
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={3}>
@@ -220,8 +292,10 @@ const handleEdit = (id) => {
                         label="Category"
                       >
                         <MenuItem value="">All Categories</MenuItem>
-                        {categories.map(category => (
-                          <MenuItem key={category} value={category}>{category}</MenuItem>
+                        {categories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -241,7 +315,7 @@ const handleEdit = (id) => {
                     <Button
                       fullWidth
                       variant="outlined"
-                      onClick={() => setFilter({ category: '', month: '' })}
+                      onClick={() => setFilter({ category: "", month: "" })}
                     >
                       Clear Filters
                     </Button>
@@ -250,7 +324,7 @@ const handleEdit = (id) => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12}>
             <Card>
               <CardContent>
@@ -268,20 +342,27 @@ const handleEdit = (id) => {
                     </TableHead>
                     <TableBody>
                       {filteredRecords.map((record) => (
-                        <TableRow key={record.id}>
+                        <TableRow key={record._id}>
                           <TableCell>{record.date}</TableCell>
-                          <TableCell>{record.description}</TableCell>
+                          <TableCell>{record.description || "-"}</TableCell>
                           <TableCell>
                             <Chip label={record.category} size="small" />
                           </TableCell>
-                          <TableCell align="right" style={{ color: record.type === 'income' ? 'green' : 'red' }}>
+                          <TableCell
+                            align="right"
+                            style={{
+                              color: record.type === "income" ? "green" : "red",
+                            }}
+                          >
                             ${parseFloat(record.amount).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            <Chip 
-                              label={record.type} 
-                              size="small" 
-                              color={record.type === 'income' ? 'success' : 'error'} 
+                            <Chip
+                              label={record.type}
+                              size="small"
+                              color={
+                                record.type === "income" ? "success" : "error"
+                              }
                             />
                           </TableCell>
                           <TableCell>
@@ -323,16 +404,18 @@ const handleEdit = (id) => {
                 {expensesByCategory.length > 0 ? (
                   <Box sx={{ height: 400 }}>
                     <PieChart
-                      series={[{
-                        data: expensesByCategory.map(item => ({
-                          value: item.total,
-                          label: item.category
-                        })),
-                        innerRadius: 30,
-                        outerRadius: 100,
-                        paddingAngle: 5,
-                        cornerRadius: 5,
-                      }]}
+                      series={[
+                        {
+                          data: expensesByCategory.map((item) => ({
+                            value: item.total,
+                            label: item.category,
+                          })),
+                          innerRadius: 30,
+                          outerRadius: 100,
+                          paddingAngle: 5,
+                          cornerRadius: 5,
+                        },
+                      ]}
                     />
                   </Box>
                 ) : (
@@ -349,23 +432,25 @@ const handleEdit = (id) => {
                 </Typography>
                 <Box sx={{ height: 400 }}>
                   <LineChart
-                    xAxis={[{ 
-                      data: monthlyData.map(item => item.month), 
-                      scaleType: 'band' 
-                    }]}
+                    xAxis={[
+                      {
+                        data: monthlyData.map((item) => item.month),
+                        scaleType: "band",
+                      },
+                    ]}
                     series={[
-                      { 
-                        data: monthlyData.map(item => item.income), 
-                        label: 'Income' 
+                      {
+                        data: monthlyData.map((item) => item.income),
+                        label: "Income",
                       },
-                      { 
-                        data: monthlyData.map(item => item.expenses), 
-                        label: 'Expenses' 
+                      {
+                        data: monthlyData.map((item) => item.expenses),
+                        label: "Expenses",
                       },
-                      { 
-                        data: monthlyData.map(item => item.net), 
-                        label: 'Net' 
-                      }
+                      {
+                        data: monthlyData.map((item) => item.net),
+                        label: "Net",
+                      },
                     ]}
                   />
                 </Box>
@@ -381,7 +466,7 @@ const handleEdit = (id) => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {editingId ? 'Edit Record' : 'Add New Record'}
+                  {editingId ? "Edit Record" : "Add New Record"}
                 </Typography>
                 <form onSubmit={handleSubmit}>
                   <Grid container spacing={2}>
@@ -422,8 +507,10 @@ const handleEdit = (id) => {
                           label="Category"
                           required
                         >
-                          {categories.map(category => (
-                            <MenuItem key={category} value={category}>{category}</MenuItem>
+                          {categories.map((category) => (
+                            <MenuItem key={category} value={category}>
+                              {category}
+                            </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
@@ -456,7 +543,7 @@ const handleEdit = (id) => {
                         variant="contained"
                         startIcon={<AddIcon />}
                       >
-                        {editingId ? 'Update Record' : 'Add Record'}
+                        {editingId ? "Update Record" : "Add Record"}
                       </Button>
                       {editingId && (
                         <Button
