@@ -1,26 +1,27 @@
-import { useEffect, useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
-  Divider, 
+import { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
   Alert,
-  CircularProgress
-} from '@mui/material';
-import { PieChart, LineChart } from '@mui/x-charts';
-//import { getFinancialSummary } from '../services/financeService';
+  CircularProgress,
+} from "@mui/material";
+import { PieChart, LineChart } from "@mui/x-charts";
+import { getFinancialSummary } from "../services/financeService.jsx";
 
 export default function Home() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getFinancialSummary();
+        console.log("Financial summary data:", data);
         setSummary(data);
       } catch (err) {
         setError(err.message);
@@ -39,7 +40,7 @@ export default function Home() {
       <Typography variant="h4" gutterBottom>
         Financial Dashboard
       </Typography>
-      
+
       <Grid container spacing={3}>
         {/* Summary Cards */}
         <Grid item xs={12} md={4}>
@@ -49,7 +50,7 @@ export default function Home() {
                 Monthly Income
               </Typography>
               <Typography variant="h4">
-                ${summary?.income?.toLocaleString()}
+                ${summary?.totalIncome?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -61,7 +62,7 @@ export default function Home() {
                 Monthly Expenses
               </Typography>
               <Typography variant="h4">
-                ${summary?.expenses?.toLocaleString()}
+                ${summary?.totalExpenses?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -72,73 +73,27 @@ export default function Home() {
               <Typography variant="h6" color="text.secondary" gutterBottom>
                 Net Balance
               </Typography>
-              <Typography variant="h4" color={summary?.netBalance >= 0 ? 'success.main' : 'error.main'}>
-                ${summary?.netBalance?.toLocaleString()}
+              <Typography
+                variant="h4"
+                color={summary?.balance >= 0 ? "success.main" : "error.main"}
+              >
+                ${summary?.balance?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Charts */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Expense Breakdown
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <PieChart
-                  series={[
-                    {
-                      data: summary?.expenseCategories || [],
-                      innerRadius: 30,
-                      outerRadius: 100,
-                      paddingAngle: 5,
-                      cornerRadius: 5,
-                    },
-                  ]}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Monthly Cash Flow
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <LineChart
-                  xAxis={[{ data: summary?.months || [], scaleType: 'band' }]}
-                  series={[
-                    { data: summary?.monthlyIncome || [], label: 'Income' },
-                    { data: summary?.monthlyExpenses || [], label: 'Expenses' },
-                  ]}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Alerts and Tips */}
+        {/* חלק מהתצוגות הוסרו זמנית עד שנוסיף את הנתונים הנוספים */}
         <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Financial Tips
+                Smart Tips
               </Typography>
-              {summary?.alerts?.map((alert, index) => (
-                <Alert key={index} severity={alert.severity} sx={{ mb: 1 }}>
-                  {alert.message}
-                </Alert>
-              ))}
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1">Smart Money Tips</Typography>
               <ul>
-                {summary?.tips?.map((tip, index) => (
-                  <li key={index}>{tip}</li>
-                ))}
+                <li>נסה לחסוך לפחות 20% מההכנסה החודשית שלך</li>
+                <li>בדוק את המנויים שלך באופן קבוע</li>
+                <li>תכנן הוצאות גדולות מראש</li>
               </ul>
             </CardContent>
           </Card>

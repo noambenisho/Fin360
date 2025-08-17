@@ -2,38 +2,137 @@ import Transaction from '../models/Transaction.js';
 
 export const getMonthlySummary = async (req, res) => {
     try {
-        const currentDate = new Date();
-        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        console.log('User ID:', req.user.id); // לוג לבדיקה
 
+        // קבל את כל העסקאות של המשתמש
         const transactions = await Transaction.find({
-            userId: req.user.id,
-            date: {
-                $gte: startOfMonth,
-                $lte: endOfMonth
-            }
+            userId: req.user.id
         });
 
-        const summary = {
-            totalIncome: 0,
-            totalExpenses: 0,
-            balance: 0,
-            expensesByCategory: {},
-            incomeByCategory: {},
-            recentTransactions: transactions.slice(0, 5)
-        };
+        console.log('Found transactions:', transactions); // לוג לבדיקה
 
-        transactions.forEach(transaction => {
+        // חישוב סכומים כוללים והוצאות לפי קטגוריה
+        const summary = transactions.reduce((acc, transaction) => {
             if (transaction.type === 'income') {
-                summary.totalIncome += transaction.amount;
-                summary.incomeByCategory[transaction.category] = (summary.incomeByCategory[transaction.category] || 0) + transaction.amount;
+                acc.income += transaction.amount;
             } else {
-                summary.totalExpenses += transaction.amount;
-                summary.expensesByCategory[transaction.category] = (summary.expensesByCategory[transaction.category] || 0) + transaction.amount;
+                acc.expenses += transaction.amount;
+                // הוספת הוצאות לפי קטגוריה
+                acc.expensesByCategory[transaction.category] = (acc.expensesByCategory[transaction.category] || 0) + transaction.amount;
+            }
+            return acc;
+        }, { 
+            income: 0, 
+            expenses: 0,
+            expensesByCategory: {},
+            alerts: []
+        });
+
+        // חישוב המאזן הנטו
+        summary.netBalance = summary.income - summary.expenses;
+
+        // הוספת התראות
+        if (summary.expenses > summary.income) {
+            summary.alerts.push({
+                severity: 'warning',
+                message: 'Your expenses are higher than your income'
+            });
+        }
+
+        if (summary.expenses > 0 && (summary.expenses / summary.income) > 0.8) {
+            summary.alerts.push({
+                severity: 'info',
+                message: 'You are spending more than 80% of your income'
+            });
+        }
+
+        // המרת הקטגוריות למערך
+        summary.expenseCategories = Object.entries(summary.expensesByCategory).map(([category, value]) => ({
+            id: category,
+            value,
+            label: category
+        }));
+
+        // מחיקת האובייקט המקורי של הקטגוריות
+        delete summary.expensesByCategory;
+
+        console.log('Sending summary:', summary); // לוג לבדיקה
+        res.json(summary);
+    } catch (error) {
+        console.error('Error in getMonthlySummary:', error);
+        res.status(500).json({ message: 'Error fetching monthly summary' });
+    }
+
+        // אתחול המערכים עם החודשים
+        summary.months = lastSixMonths.map(m => m.month);
+        summary.monthlyIncome = new Array(6).fill(0);
+        summary.monthlyExpenses = new Array(6).fill(0);
+
+        // חישוב הנתונים החודשיים
+        transactions.forEach(transaction => {
+            const transDate = new Date(transaction.date);
+            const monthIndex = lastSixMonths.findIndex(m => 
+                transDate >= m.startDate && transDate <= m.endDate
+            );
+            
+            if (monthIndex !== -1) {
+                if (transaction.type === 'income') {
+                    summary.income += transaction.amount;
+                    summary.monthlyIncome[monthIndex] += transaction.amount;
+                } else {
+                    summary.expenses += transaction.amount;
+                    summary.monthlyExpenses[monthIndex] += transaction.amount;
+                }
+            }
+        });
+        
+        summary.netBalance = summary.income - summary.expenses;
+
+        // חישוב הוצאות לפי קטגוריה לתרשים העוגה
+        const expensesByCategory = {};
+        transactions.forEach(transaction => {
+            if (transaction.type === 'expense') {
+                expensesByCategory[transaction.category] = (expensesByCategory[transaction.category] || 0) + transaction.amount;
             }
         });
 
-        summary.balance = summary.totalIncome - summary.totalExpenses;
+        // המרת הקטגוריות למבנה שהגרף מצפה לו
+        summary.expenseCategories = Object.entries(expensesByCategory).map(([category, value]) => ({
+            id: category,
+            value: value,
+            label: category
+        }));
+
+        summary.expenseCategories = Object.entries(expensesByCategory).map(([label, value]) => ({
+            label,
+            value
+        }));
+
+        // חישוב נתונים חודשיים לגרף
+        const months = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            return date.toLocaleString('default', { month: 'short' });
+        }).reverse();
+
+        summary.months = months;
+        summary.monthlyIncome = Array(12).fill(0);  // נתונים לדוגמה
+        summary.monthlyExpenses = Array(12).fill(0); // נתונים לדוגמה
+
+        // הוספת התראות
+        if (summary.expenses > summary.income) {
+            summary.alerts.push({
+                severity: 'warning',
+                message: 'Your expenses are higher than your income this month'
+            });
+        }
+
+        if (summary.expenses > 0 && (summary.expenses / summary.income) > 0.8) {
+            summary.alerts.push({
+                severity: 'info',
+                message: 'You are spending more than 80% of your income'
+            });
+        }
 
         res.json(summary);
     } catch (error) {

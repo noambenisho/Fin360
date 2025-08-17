@@ -8,6 +8,9 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // קבלת כל העסקאות של המשתמש המחובר
+// קבלת סיכום חודשי - חייב להיות לפני הראוטים עם פרמטרים!
+router.get("/summary", transactionController.getMonthlySummary);
+
 router.get("/", transactionController.getTransactions);
 
 // הוספת עסקה חדשה
@@ -18,8 +21,5 @@ router.put("/:id", transactionController.updateTransaction);
 
 // מחיקת עסקה
 router.delete("/:id", transactionController.deleteTransaction);
-
-// קבלת סיכום חודשי
-router.get("/summary", transactionController.getMonthlySummary);
 
 export default router;

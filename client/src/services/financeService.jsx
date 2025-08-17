@@ -49,23 +49,21 @@ export const deleteTransaction = async (id) => {
   }
 };
 
+export const getFinancialSummary = async () => {
+  try {
+    const { data } = await axios.get(`${API_TRANSACTIONS}/summary`);
+    return data;
+  } catch (error) {
+    throw new Error(errMsg(error, "Failed to fetch financial summary"));
+  }
+};
+
 export const updateTransaction = async (id, transaction) => {
   try {
     const { data } = await axios.put(`${API_TRANSACTIONS}/${id}`, transaction);
     return data;
   } catch (error) {
     throw new Error(errMsg(error, "Failed to update transaction"));
-  }
-};
-
-/* ---------- Finance summary (protected) ---------- */
-
-export const getFinancialSummary = async () => {
-  try {
-    const { data } = await axios.get(`${API_FINANCE}/summary`);
-    return data;
-  } catch (error) {
-    throw new Error(errMsg(error, "Failed to fetch financial summary"));
   }
 };
 
