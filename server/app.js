@@ -10,6 +10,9 @@ import userRoutes from "./routes/userRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import testCrudRoutes from "./routes/testCrudRoutes.js";
+import authMiddleware from "./middleware/authMiddleware.js";
+import financeRoutes from "./routes/financeRoutes.js";
+
 
 dotenv.config();
 
@@ -25,6 +28,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profiles", profileRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/_test", testCrudRoutes);
+
+app.use("/api/finance", authMiddleware, financeRoutes);
+
 app.use("/api/_test", testCrudRoutes);
 
 app.get("/", (_req, res) => res.send("Fin360 API running"));
