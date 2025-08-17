@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/pages/Income&Expenses.jsx
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -27,23 +28,19 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { PieChart, LineChart } from "@mui/x-charts";
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from "@mui/icons-material";
+import { useAuth } from "../context/AuthContext";
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
+} from "../services/financeService";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
-
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
+    <div role="tabpanel" hidden={value !== index} id={`simple-tabpanel-${index}`} {...other}>
       {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
@@ -61,25 +58,20 @@ const categories = [
   "Other",
 ];
 
-import { useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import {
-  getTransactions,
-  addTransaction,
-  deleteTransaction,
-} from "../services/financeService";
-
 export default function IncomeExpenses() {
   const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
+
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+
   const [feedback, setFeedback] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+
   const [formData, setFormData] = useState({
     amount: "",
     category: "",
@@ -87,102 +79,34 @@ export default function IncomeExpenses() {
     description: "",
     type: "expense",
   });
+
   const [filter, setFilter] = useState({
     category: "",
     month: "",
   });
+
   const [editingId, setEditingId] = useState(null);
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilter({
-      ...filter,
-      [name]: value,
-    });
-  };
-
+  // ----- Effects -----
   useEffect(() => {
     const loadTransactions = async () => {
       try {
         setLoading(true);
-        const data = await getTransactions();
+        const data = await getTransactions(); // GET /api/transactions (auth required)
         setRecords(data);
       } catch (err) {
-        setError(err.message);
-        console.error("Failed to load transactions:", err);
+        setError(err.message || "Failed to load transactions");
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      loadTransactions();
-    }
+    if (user) loadTransactions();
   }, [user]);
 
+  // ----- Helpers -----
   const showFeedback = (message, severity = "success") => {
     setFeedback({ open: true, message, severity });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const newRecord = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        userId: user.id,
-      };
-
-      const savedRecord = await addTransaction(newRecord);
-      setRecords((prev) => [...prev, savedRecord]);
-      resetForm();
-      setTabValue(0); // Switch back to Transactions tab
-      showFeedback("Transaction added successfully");
-    } catch (err) {
-      setError(err.message);
-      showFeedback(err.message || "Failed to save transaction", "error");
-      console.error("Failed to save transaction:", err);
-    }
-  };
-
-  const handleEdit = (id) => {
-    const recordToEdit = records.find((record) => record.id === id);
-    if (recordToEdit) {
-      setFormData({
-        amount: recordToEdit.amount.toString(),
-        category: recordToEdit.category,
-        date: recordToEdit.date,
-        description: recordToEdit.description,
-        type: recordToEdit.type || "expense",
-      });
-      setEditingId(id);
-      setTabValue(2); // Switch to the Add/Edit tab
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await deleteTransaction(id);
-      setRecords(records.filter((record) => record._id !== id));
-      if (editingId === id) resetForm();
-      showFeedback("Transaction deleted successfully");
-    } catch (err) {
-      setError(err.message);
-      showFeedback(err.message || "Failed to delete transaction", "error");
-      console.error("Failed to delete transaction:", err);
-    }
   };
 
   const resetForm = () => {
@@ -196,58 +120,142 @@ export default function IncomeExpenses() {
     setEditingId(null);
   };
 
-  const filteredRecords = records.filter((record) => {
-    const matchesCategory =
-      !filter.category || record.category === filter.category;
-    const matchesMonth = !filter.month || record.date.startsWith(filter.month);
-    return matchesCategory && matchesMonth;
+  // ----- Handlers -----
+  const handleTabChange = (_e, v) => setTabValue(v);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((s) => ({ ...s, [name]: value }));
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilter((s) => ({ ...s, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Basic client-side validation to match backend expectations
+    const amountNum = parseFloat(formData.amount);
+    if (!amountNum || amountNum <= 0) {
+      showFeedback("Amount must be a positive number", "error");
+      return;
+    }
+    if (!formData.type || !formData.category) {
+      showFeedback("Type and category are required", "error");
+      return;
+    }
+    // On update, backend requires description too (see transactionController.updateTransaction)
+    if (editingId && !formData.description) {
+      showFeedback("Description is required when updating a transaction", "error");
+      return;
+    }
+
+    const payload = {
+      amount: amountNum,
+      type: formData.type,
+      category: formData.category,
+      description: formData.description || undefined,
+      date: formData.date, // ISO yyyy-mm-dd is fine (server converts to Date)
+    };
+
+    try {
+      if (editingId) {
+        const updated = await updateTransaction(editingId, payload); // PUT /api/transactions/:id
+        setRecords((prev) => prev.map((r) => (r._id === editingId ? updated : r)));
+        showFeedback("Transaction updated successfully");
+      } else {
+        const created = await addTransaction(payload); // POST /api/transactions
+        setRecords((prev) => [created, ...prev]);
+        showFeedback("Transaction added successfully");
+      }
+      resetForm();
+      setTabValue(0);
+    } catch (err) {
+      const msg = err.message || "Failed to save transaction";
+      setError(msg);
+      showFeedback(msg, "error");
+    }
+  };
+
+  const handleEdit = (id) => {
+    const recordToEdit = records.find((r) => r._id === id);
+    if (!recordToEdit) return;
+
+    setFormData({
+      amount: recordToEdit.amount.toString(),
+      category: recordToEdit.category || "",
+      date: recordToEdit.date ? recordToEdit.date.slice(0, 10) : new Date().toISOString().split("T")[0],
+      description: recordToEdit.description || "",
+      type: recordToEdit.type || "expense",
+    });
+    setEditingId(id);
+    setTabValue(2);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteTransaction(id); // DELETE /api/transactions/:id
+      setRecords((prev) => prev.filter((r) => r._id !== id));
+      if (editingId === id) resetForm();
+      showFeedback("Transaction deleted successfully");
+    } catch (err) {
+      const msg = err.message || "Failed to delete transaction";
+      setError(msg);
+      showFeedback(msg, "error");
+    }
+  };
+
+  // ----- Derived data -----
+  const filteredRecords = records.filter((r) => {
+    const matchCategory = !filter.category || r.category === filter.category;
+    const matchMonth = !filter.month || (r.date || "").startsWith(filter.month);
+    return matchCategory && matchMonth;
   });
 
   const expensesByCategory = categories
     .map((category) => {
       const total = filteredRecords
         .filter((r) => r.category === category && r.type === "expense")
-        .reduce((sum, r) => sum + parseFloat(r.amount), 0);
+        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
       return { category, total };
     })
-    .filter((item) => item.total > 0);
+    .filter((x) => x.total > 0);
 
-  const monthlyData = Array.from({ length: 12 }, (_, month) => {
-    const monthStr = (month + 1).toString().padStart(2, "0");
+  const monthlyData = Array.from({ length: 12 }, (_, m) => {
+    const monthStr = String(m + 1).padStart(2, "0");
     const year = new Date().getFullYear();
     const monthKey = `${year}-${monthStr}`;
 
     const income = filteredRecords
-      .filter((r) => r.date.startsWith(monthKey) && r.type === "income")
-      .reduce((sum, r) => sum + parseFloat(r.amount), 0);
+      .filter((r) => (r.date || "").startsWith(monthKey) && r.type === "income")
+      .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
     const expenses = filteredRecords
-      .filter((r) => r.date.startsWith(monthKey) && r.type === "expense")
-      .reduce((sum, r) => sum + parseFloat(r.amount), 0);
+      .filter((r) => (r.date || "").startsWith(monthKey) && r.type === "expense")
+      .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
     return { month: monthKey, income, expenses, net: income - expenses };
   });
 
+  // ----- Guards -----
   if (!user) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <Typography variant="h5">Please log in to access this page.</Typography>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+        <Typography variant="h6">Please log in to access this page.</Typography>
       </Box>
     );
   }
 
+  // ----- UI -----
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" gutterBottom>
         Income & Expenses Tracker
       </Typography>
+
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
           <CircularProgress />
@@ -256,26 +264,23 @@ export default function IncomeExpenses() {
 
       <Snackbar
         open={feedback.open}
-        autoHideDuration={6000}
-        onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
+        autoHideDuration={4000}
+        onClose={() => setFeedback((p) => ({ ...p, open: false }))}
       >
-        <Alert
-          onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
-          severity={feedback.severity}
-          sx={{ width: "100%" }}
-        >
+        <Alert severity={feedback.severity} onClose={() => setFeedback((p) => ({ ...p, open: false }))}>
           {feedback.message}
         </Alert>
       </Snackbar>
 
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Transactions" />
           <Tab label="Charts" />
-          <Tab label="Add Record" />
+          <Tab label="Add / Edit" />
         </Tabs>
       </Box>
 
+      {/* Transactions */}
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -285,16 +290,11 @@ export default function IncomeExpenses() {
                   <Grid item xs={12} sm={4}>
                     <FormControl fullWidth>
                       <InputLabel>Category</InputLabel>
-                      <Select
-                        name="category"
-                        value={filter.category}
-                        onChange={handleFilterChange}
-                        label="Category"
-                      >
+                      <Select name="category" value={filter.category} onChange={handleFilterChange} label="Category">
                         <MenuItem value="">All Categories</MenuItem>
-                        {categories.map((category) => (
-                          <MenuItem key={category} value={category}>
-                            {category}
+                        {categories.map((c) => (
+                          <MenuItem key={c} value={c}>
+                            {c}
                           </MenuItem>
                         ))}
                       </Select>
@@ -312,11 +312,7 @@ export default function IncomeExpenses() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      onClick={() => setFilter({ category: "", month: "" })}
-                    >
+                    <Button fullWidth variant="outlined" onClick={() => setFilter({ category: "", month: "" })}>
                       Clear Filters
                     </Button>
                   </Grid>
@@ -341,42 +337,27 @@ export default function IncomeExpenses() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filteredRecords.map((record) => (
-                        <TableRow key={record._id}>
-                          <TableCell>{record.date}</TableCell>
-                          <TableCell>{record.description || "-"}</TableCell>
+                      {filteredRecords.map((r) => (
+                        <TableRow key={r._id}>
+                          <TableCell>{(r.date || "").slice(0, 10)}</TableCell>
+                          <TableCell>{r.description || "-"}</TableCell>
                           <TableCell>
-                            <Chip label={record.category} size="small" />
+                            <Chip label={r.category} size="small" />
                           </TableCell>
-                          <TableCell
-                            align="right"
-                            style={{
-                              color: record.type === "income" ? "green" : "red",
-                            }}
-                          >
-                            ${parseFloat(record.amount).toFixed(2)}
+                          <TableCell align="right" style={{ color: r.type === "income" ? "green" : "red" }}>
+                            ${Number(r.amount || 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            <Chip
-                              label={record.type}
-                              size="small"
-                              color={
-                                record.type === "income" ? "success" : "error"
-                              }
-                            />
+                            <Chip label={r.type} size="small" color={r.type === "income" ? "success" : "error"} />
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="small"
-                              startIcon={<EditIcon />}
-                              onClick={() => handleEdit(record.id)}
-                            >
+                            <Button size="small" startIcon={<EditIcon />} onClick={() => handleEdit(r._id)}>
                               Edit
                             </Button>
                             <Button
                               size="small"
                               startIcon={<DeleteIcon />}
-                              onClick={() => handleDelete(record.id)}
+                              onClick={() => handleDelete(r._id)}
                               color="error"
                             >
                               Delete
@@ -384,6 +365,13 @@ export default function IncomeExpenses() {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {!filteredRecords.length && !loading && (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center">
+                            No transactions yet.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -393,6 +381,7 @@ export default function IncomeExpenses() {
         </Grid>
       </TabPanel>
 
+      {/* Charts */}
       <TabPanel value={tabValue} index={1}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
@@ -401,15 +390,12 @@ export default function IncomeExpenses() {
                 <Typography variant="h6" gutterBottom>
                   Expense Breakdown by Category
                 </Typography>
-                {expensesByCategory.length > 0 ? (
+                {expensesByCategory.length ? (
                   <Box sx={{ height: 400 }}>
                     <PieChart
                       series={[
                         {
-                          data: expensesByCategory.map((item) => ({
-                            value: item.total,
-                            label: item.category,
-                          })),
+                          data: expensesByCategory.map((x) => ({ value: x.total, label: x.category })),
                           innerRadius: 30,
                           outerRadius: 100,
                           paddingAngle: 5,
@@ -424,6 +410,7 @@ export default function IncomeExpenses() {
               </CardContent>
             </Card>
           </Grid>
+
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
@@ -432,25 +419,11 @@ export default function IncomeExpenses() {
                 </Typography>
                 <Box sx={{ height: 400 }}>
                   <LineChart
-                    xAxis={[
-                      {
-                        data: monthlyData.map((item) => item.month),
-                        scaleType: "band",
-                      },
-                    ]}
+                    xAxis={[{ data: monthlyData.map((m) => m.month), scaleType: "band" }]}
                     series={[
-                      {
-                        data: monthlyData.map((item) => item.income),
-                        label: "Income",
-                      },
-                      {
-                        data: monthlyData.map((item) => item.expenses),
-                        label: "Expenses",
-                      },
-                      {
-                        data: monthlyData.map((item) => item.net),
-                        label: "Net",
-                      },
+                      { data: monthlyData.map((m) => m.income), label: "Income" },
+                      { data: monthlyData.map((m) => m.expenses), label: "Expenses" },
+                      { data: monthlyData.map((m) => m.net), label: "Net" },
                     ]}
                   />
                 </Box>
@@ -460,31 +433,32 @@ export default function IncomeExpenses() {
         </Grid>
       </TabPanel>
 
+      {/* Add / Edit */}
       <TabPanel value={tabValue} index={2}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {editingId ? "Edit Record" : "Add New Record"}
+                  {editingId ? "Edit Transaction" : "Add New Transaction"}
                 </Typography>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}
                 <form onSubmit={handleSubmit}>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <FormControl fullWidth>
                         <InputLabel>Type</InputLabel>
-                        <Select
-                          name="type"
-                          value={formData.type}
-                          onChange={handleInputChange}
-                          label="Type"
-                          required
-                        >
+                        <Select name="type" value={formData.type} onChange={handleInputChange} label="Type" required>
                           <MenuItem value="income">Income</MenuItem>
                           <MenuItem value="expense">Expense</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
+
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
@@ -497,6 +471,7 @@ export default function IncomeExpenses() {
                         InputProps={{ inputProps: { min: 0, step: 0.01 } }}
                       />
                     </Grid>
+
                     <Grid item xs={12}>
                       <FormControl fullWidth>
                         <InputLabel>Category</InputLabel>
@@ -507,14 +482,15 @@ export default function IncomeExpenses() {
                           label="Category"
                           required
                         >
-                          {categories.map((category) => (
-                            <MenuItem key={category} value={category}>
-                              {category}
+                          {categories.map((c) => (
+                            <MenuItem key={c} value={c}>
+                              {c}
                             </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
+
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
@@ -527,6 +503,7 @@ export default function IncomeExpenses() {
                         InputLabelProps={{ shrink: true }}
                       />
                     </Grid>
+
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
@@ -534,24 +511,16 @@ export default function IncomeExpenses() {
                         name="description"
                         value={formData.description}
                         onChange={handleInputChange}
+                        placeholder="(Optional for create, required for update)"
                       />
                     </Grid>
+
                     <Grid item xs={12}>
-                      <Button
-                        fullWidth
-                        type="submit"
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                      >
-                        {editingId ? "Update Record" : "Add Record"}
+                      <Button fullWidth type="submit" variant="contained" startIcon={<AddIcon />}>
+                        {editingId ? "Update Transaction" : "Add Transaction"}
                       </Button>
                       {editingId && (
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          sx={{ mt: 2 }}
-                          onClick={resetForm}
-                        >
+                        <Button fullWidth variant="outlined" sx={{ mt: 2 }} onClick={resetForm}>
                           Cancel
                         </Button>
                       )}
@@ -561,6 +530,26 @@ export default function IncomeExpenses() {
               </CardContent>
             </Card>
           </Grid>
+
+          {/* Small summary card ---------------------------------*/}
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Quick Summary
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Typography variant="body1">
+                  Records: <b>{records.length}</b>
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 1 }}>
+                  This form posts to <code>/api/transactions</code> and updates with{" "}
+                  <code>PUT /api/transactions/:id</code> using your JWT.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          {/* Small summary card ---------------------------------*/}
         </Grid>
       </TabPanel>
     </Box>

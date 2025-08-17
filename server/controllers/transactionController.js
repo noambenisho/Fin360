@@ -56,7 +56,7 @@ export const createTransaction = async (req, res) => {
     try {
         const { amount, type, category, description, date } = req.body;
         
-        // וולידציה בסיסית
+        // Basic validation
         if (!amount || !type || !category) {
             return res.status(400).json({ message: 'Amount, type and category are required' });
         }
@@ -82,14 +82,14 @@ export const updateTransaction = async (req, res) => {
         const { id } = req.params;
         const { amount, type, category, description, date } = req.body;
 
-        // וולידציה בסיסית
+        // Basic validation
         if (!amount || !type || !category || !description) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
         const transaction = await Transaction.findOne({ 
             _id: id,
-            userId: req.user.id  // וידוא שהעסקה שייכת למשתמש
+            userId: req.user.id  // Verify that the transaction belongs to the user
         });
 
         if (!transaction) {
@@ -115,7 +115,7 @@ export const deleteTransaction = async (req, res) => {
         
         const transaction = await Transaction.findOneAndDelete({
             _id: id,
-            userId: req.user.id  // וידוא שהעסקה שייכת למשתמש
+            userId: req.user.id  // Verify that the transaction belongs to the user
         });
 
         if (!transaction) {
@@ -123,25 +123,6 @@ export const deleteTransaction = async (req, res) => {
         }
 
         res.json({ message: 'Transaction deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// summary function was moved to the top of the file
-        };
-
-        transactions.forEach(transaction => {
-            if (transaction.type === 'income') {
-                summary.income += transaction.amount;
-            } else {
-                summary.expenses += transaction.amount;
-                summary.byCategory[transaction.category] = 
-                    (summary.byCategory[transaction.category] || 0) + transaction.amount;
-            }
-        });
-
-        res.json(summary);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
