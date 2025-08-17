@@ -1,18 +1,16 @@
 // services/authService.jsx
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 // עדכן/י כתובת בסיס לפי הצורך (סביבת פיתוח/פרודקשן)
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = "http://localhost:5000/api/auth";
 
 // עוזר קטן לשמירת הטוקן והזרקתו ל-axios
 export const setAuthToken = (token) => {
   if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    localStorage.setItem('token', token);
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
-    delete axios.defaults.headers.common['Authorization'];
-    localStorage.removeItem('token');
+    delete axios.defaults.headers.common["Authorization"];
   }
 };
 
@@ -31,7 +29,7 @@ export const loginUser = async (credentials) => {
   const res = await axios.post(`${API_URL}/login`, credentials);
   const token = res?.data?.token;
 
-  if (!token) throw new Error('No token returned from server');
+  if (!token) throw new Error("No token returned from server");
 
   setAuthToken(token);
 
@@ -54,10 +52,13 @@ export const forgotPassword = async (email) => {
 
 export const resetPassword = async (token, newPassword) => {
   // ללא hashing בצד לקוח
-  const res = await axios.post(`${API_URL}/reset-password`, { token, newPassword });
+  const res = await axios.post(`${API_URL}/reset-password`, {
+    token,
+    newPassword,
+  });
   return res.data;
 };
 
 // נסה/י לטעון טוקן מה-localStorage בבוטסטראפ האפליקציה
-const existing = localStorage.getItem('token');
+const existing = localStorage.getItem("token");
 if (existing) setAuthToken(existing);

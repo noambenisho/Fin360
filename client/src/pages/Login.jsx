@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Box,
   TextField,
@@ -10,42 +10,47 @@ import {
   Paper,
   Avatar,
   CssBaseline,
-  Grid
-} from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { loginUser } from '../services/authService';
+  Grid,
+} from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { loginUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
     try {
       const response = await loginUser({ email, password });
-      if (rememberMe) {
-        localStorage.setItem('token', response.token);
-      } else {
-        sessionStorage.setItem('token', response.token);
-      }
-      navigate('/');
+      // Clear any existing tokens before setting new ones
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+
+      login(response.token, rememberMe);
+      navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Login failed. Please try again.");
     }
   };
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(to right, #f0f4f8, #d9e4ec)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2
+        minHeight: "100vh",
+        background: "linear-gradient(to right, #f0f4f8, #d9e4ec)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: 2,
       }}
     >
       <CssBaseline />
@@ -54,21 +59,26 @@ export default function Login() {
         sx={{
           p: 4,
           borderRadius: 4,
-          width: '100%',
+          width: "100%",
           maxWidth: 400,
-          backgroundColor: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
+          backgroundColor: "white",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
-        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+        <Avatar sx={{ m: 1, bgcolor: "primary.main" }}>
           <LockOutlinedIcon />
         </Avatar>
         <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
           Sign In
         </Typography>
-        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
+        <Box
+          component="form"
+          noValidate
+          onSubmit={handleSubmit}
+          sx={{ width: "100%" }}
+        >
           <TextField
             margin="normal"
             required
@@ -116,20 +126,26 @@ export default function Login() {
               mt: 3,
               mb: 2,
               py: 1.5,
-              fontSize: '1rem',
-              borderRadius: 2
+              fontSize: "1rem",
+              borderRadius: 2,
             }}
           >
             Sign In
           </Button>
           <Grid container justifyContent="space-between">
             <Grid item>
-              <Link to="/forgot-password" style={{ textDecoration: 'none', color: '#1976d2' }}>
+              <Link
+                to="/forgot-password"
+                style={{ textDecoration: "none", color: "#1976d2" }}
+              >
                 Forgot password?
               </Link>
             </Grid>
             <Grid item>
-              <Link to="/register" style={{ textDecoration: 'none', color: '#1976d2' }}>
+              <Link
+                to="/register"
+                style={{ textDecoration: "none", color: "#1976d2" }}
+              >
                 Don't have an account? Sign Up
               </Link>
             </Grid>
