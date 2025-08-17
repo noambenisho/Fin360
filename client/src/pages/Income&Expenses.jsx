@@ -118,6 +118,7 @@ export default function IncomeExpenses() {
       type: "expense",
     });
     setEditingId(null);
+    setError("");
   };
 
   // ----- Handlers -----
@@ -170,9 +171,9 @@ export default function IncomeExpenses() {
         const created = await addTransaction(payload); // POST /api/transactions
         setRecords((prev) => [created, ...prev]);
         showFeedback("Transaction added successfully");
+        resetForm(); // מיד אחרי הוספה מוצלחת
+        setTabValue(0); // מעבר לטאב הראשון
       }
-      resetForm();
-      setTabValue(0);
     } catch (err) {
       const msg = err.message || "Failed to save transaction";
       setError(msg);
@@ -273,7 +274,7 @@ export default function IncomeExpenses() {
       </Snackbar>
 
       <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Tabs value={tabValue} onChange={handleTabChange} onClick={() => resetForm()}>
           <Tab label="Transactions" />
           <Tab label="Charts" />
           <Tab label="Add / Edit" />

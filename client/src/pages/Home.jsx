@@ -10,7 +10,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { PieChart, LineChart } from '@mui/x-charts';
-import { getFinancialSummary } from '../services/financeService';
+//import { getFinancialSummary } from '../services/financeService';
 
 export default function Home() {
   const [summary, setSummary] = useState(null);
