@@ -46,3 +46,12 @@ export const updateProfile = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+export const getProfiles = async (req, res) => {
+  try {
+    const profiles = await Profile.find();
+    res.json(profiles);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -1,24 +1,26 @@
-// middleware/authMiddleware.js
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
-    const raw = req.header('Authorization') || '';
-    const token = raw.startsWith('Bearer ') ? raw.slice(7) : null;
+    const raw = req.header("Authorization") || "";
+    const token = raw.startsWith("Bearer ") ? raw.slice(7) : null;
 
     if (!token) {
-      return res.status(401).json({ msg: 'No token, authorization denied' });
+      return res.status(401).json({ msg: "No token, authorization denied" });
     }
 
-    // השרת חותם טוקן בפורמט: { id: <userId> }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
 
-    // ננרמל את המבנה שזמין הלאה בבקשה
-    req.user = { id: decoded.id };
+    if (!user) {
+      return res.status(401).json({ msg: "User not found" });
+    }
 
-    return next();
+    req.user = { id: user._id, role: user.role }; // נשמור גם role
+    next();
   } catch (err) {
-    return res.status(401).json({ msg: 'Token is not valid' });
+    return res.status(401).json({ msg: "Token is not valid" });
   }
 };
 
