@@ -42,12 +42,20 @@ function TabPanel(props) {
 
 export default function Mortgage() {
   const [tabValue, setTabValue] = useState(0);
-  const [formData, setFormData] = useState({
-    monthlyPayment: 1000,
-    mortgageRate: 4.5,
-    investmentRate: 7,
-    years: 30
-  });
+const [formData, setFormData] = useState({
+  // Mortgage details
+  initialHousePrice: 2000000,
+  downPayment: 600000,  // Add this line
+  monthlyPayment: 5000,
+  mortgageRate: 4.5,
+  monthlyRent: 4000,
+  houseAppreciationRate: 4,
+  // Investment details
+  initialInvestment: 500000,
+  monthlyInvestment: 5000,
+  investmentRate: 7,
+  years: 30
+});
   const [results, setResults] = useState(null);
 
   const handleTabChange = (event, newValue) => {
@@ -63,20 +71,44 @@ export default function Mortgage() {
   };
 
   const calculate = () => {
-    const { monthlyPayment, mortgageRate, investmentRate, years } = formData;
+    const { 
+      initialHousePrice,
+      downPayment,
+      monthlyPayment,
+      mortgageRate,
+      monthlyRent,
+      houseAppreciationRate,
+      initialInvestment,
+      monthlyInvestment,
+      investmentRate,
+      years
+    } = formData;
     const months = years * 12;
     const monthlyMortgageRate = mortgageRate / 100 / 12;
     const monthlyInvestmentRate = investmentRate / 100 / 12;
+    const monthlyHouseAppreciation = houseAppreciationRate / 100 / 12;
 
     // Mortgage calculation
-    const mortgageTotal = monthlyPayment * months;
-    const mortgageInterest = mortgageTotal - (monthlyPayment / monthlyMortgageRate * (1 - Math.pow(1 + monthlyMortgageRate, -months)));
-
-    // Investment calculation
-    let investmentValue = 0;
+ const mortgageAmount = initialHousePrice - downPayment;
+const mortgageTotal = monthlyPayment * months;
+const mortgageInterest = mortgageTotal - mortgageAmount;
+    // House value appreciation
+    let houseValue = initialHousePrice;
+    const houseValueGrowth = [];
+    let totalRentalIncome = 0;
+    
+    // Investment calculation with initial investment
+    let investmentValue = initialInvestment;
     const investmentGrowth = [];
+    
     for (let i = 0; i < months; i++) {
-      investmentValue = (investmentValue + monthlyPayment) * (1 + monthlyInvestmentRate);
+      // House appreciation
+      houseValue *= (1 + monthlyHouseAppreciation);
+      houseValueGrowth.push(houseValue);
+      totalRentalIncome += monthlyRent;
+      
+      // Investment growth with monthly contributions
+      investmentValue = (investmentValue + monthlyInvestment) * (1 + monthlyInvestmentRate);
       investmentGrowth.push(investmentValue);
     }
 
@@ -85,9 +117,13 @@ export default function Mortgage() {
       mortgageInterest,
       investmentValue,
       investmentGrowth,
+      houseValueGrowth,
+      totalRentalIncome,
       comparison: investmentValue - mortgageTotal,
       monthlyBreakdown: Array.from({ length: months }, (_, i) => i + 1)
     });
+
+    // Removed duplicate setResults call
   };
 
   return (
@@ -104,7 +140,32 @@ export default function Mortgage() {
                 Input Parameters
               </Typography>
               <Grid container spacing={2}>
+                <Typography variant="subtitle1" sx={{ width: '100%', mt: 2, mb: 1, pl: 2 }}>
+                  Mortgage Details
+                </Typography>
                 <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Down Payment (₪)"
+                  name="downPayment"
+                  type="number"
+                  value={formData.downPayment}
+                  onChange={handleChange}
+                  InputProps={{ inputProps: { min: 0 } }}
+                />
+              </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Initial House Price (₪)"
+                    name="initialHousePrice"
+                    type="number"
+                    value={formData.initialHousePrice}
+                    onChange={handleChange}
+                    InputProps={{ inputProps: { min: 1 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Monthly Payment (₪)"
@@ -113,6 +174,17 @@ export default function Mortgage() {
                     value={formData.monthlyPayment}
                     onChange={handleChange}
                     InputProps={{ inputProps: { min: 1 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Monthly Rental Income (₪)"
+                    name="monthlyRent"
+                    type="number"
+                    value={formData.monthlyRent}
+                    onChange={handleChange}
+                    InputProps={{ inputProps: { min: 0 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -129,6 +201,43 @@ export default function Mortgage() {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    label="House Appreciation Rate (%)"
+                    name="houseAppreciationRate"
+                    type="number"
+                    value={formData.houseAppreciationRate}
+                    onChange={handleChange}
+                    InputProps={{ inputProps: { min: 0, step: 0.1 } }}
+                  />
+                </Grid>
+                
+                <Typography variant="subtitle1" sx={{ width: '100%', mt: 2, mb: 1, pl: 2 }}>
+                  Investment Details
+                </Typography>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Initial Investment (₪)"
+                    name="initialInvestment"
+                    type="number"
+                    value={formData.initialInvestment}
+                    onChange={handleChange}
+                    InputProps={{ inputProps: { min: 0 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Monthly Investment (₪)"
+                    name="monthlyInvestment"
+                    type="number"
+                    value={formData.monthlyInvestment}
+                    onChange={handleChange}
+                    InputProps={{ inputProps: { min: 0 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
                     label="Investment Return (%)"
                     name="investmentRate"
                     type="number"
@@ -137,7 +246,7 @@ export default function Mortgage() {
                     InputProps={{ inputProps: { min: 0, step: 0.1 } }}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Time Period (Years)"
@@ -181,13 +290,31 @@ export default function Mortgage() {
                         Mortgage Scenario
                       </Typography>
                       <Typography>
-                        <strong>Total Payments:</strong> ${results.mortgageTotal.toLocaleString()}
+                        <strong>Total House Price:</strong> ₪{formData.initialHousePrice.toLocaleString()}
                       </Typography>
                       <Typography>
-                        <strong>Total Interest:</strong> ${results.mortgageInterest.toLocaleString()}
+                        <strong>Down Payment:</strong> ₪{formData.downPayment.toLocaleString()}
                       </Typography>
                       <Typography>
-                        <strong>Principal:</strong> ${(results.mortgageTotal - results.mortgageInterest).toLocaleString()}
+                        <strong>Mortgage Loan Amount:</strong> ₪{(formData.initialHousePrice - formData.downPayment).toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Initial House Price:</strong> ₪{formData.initialHousePrice.toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Final House Value:</strong> ₪{(results?.houseValueGrowth?.[results.houseValueGrowth.length - 1] || 0).toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Total House Appreciation:</strong> ₪{((results?.houseValueGrowth?.[results.houseValueGrowth.length - 1] || 0) - formData.initialHousePrice).toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Total Mortgage Payments:</strong> ₪{results.mortgageTotal.toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Total Interest Paid:</strong> ₪{results.mortgageInterest.toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Total Rental Income:</strong> ₪{results.totalRentalIncome.toLocaleString()}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -195,13 +322,16 @@ export default function Mortgage() {
                         Investment Scenario
                       </Typography>
                       <Typography>
-                        <strong>Final Value:</strong> ${results.investmentValue.toLocaleString()}
+                        <strong>Initial Investment:</strong> ₪{formData.initialInvestment.toLocaleString()}
                       </Typography>
                       <Typography>
-                        <strong>Total Contributions:</strong> ${(formData.monthlyPayment * formData.years * 12).toLocaleString()}
+                        <strong>Final Investment Value:</strong> ₪{results.investmentValue.toLocaleString()}
                       </Typography>
                       <Typography>
-                        <strong>Total Growth:</strong> ${(results.investmentValue - formData.monthlyPayment * formData.years * 12).toLocaleString()}
+                        <strong>Total Contributions:</strong> ₪{((formData.initialInvestment + formData.monthlyInvestment * formData.years * 12)).toLocaleString()}
+                      </Typography>
+                      <Typography>
+                        <strong>Total Investment Growth:</strong> ₪{(results.investmentValue - (formData.initialInvestment + formData.monthlyInvestment * formData.years * 12)).toLocaleString()}
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
@@ -209,11 +339,11 @@ export default function Mortgage() {
                       <Typography variant="h6">
                         {results.comparison >= 0 ? (
                           <span style={{ color: 'green' }}>
-                            Investing is better by ${Math.abs(results.comparison).toLocaleString()}
+                            Investing is better by ₪{Math.abs(results.comparison).toLocaleString()}
                           </span>
                         ) : (
                           <span style={{ color: 'red' }}>
-                            Paying mortgage is better by ${Math.abs(results.comparison).toLocaleString()}
+                            Paying mortgage is better by ₪{Math.abs(results.comparison).toLocaleString()}
                           </span>
                         )}
                       </Typography>
@@ -266,8 +396,8 @@ export default function Mortgage() {
                           return (
                             <TableRow key={year}>
                               <TableCell>{year + 1}</TableCell>
-                              <TableCell align="right">${mortgagePaid.toLocaleString()}</TableCell>
-                              <TableCell align="right">${investmentVal.toLocaleString()}</TableCell>
+                              <TableCell align="right">₪{mortgagePaid.toLocaleString()}</TableCell>
+                              <TableCell align="right">₪{investmentVal.toLocaleString()}</TableCell>
                               <TableCell align="right" style={{ color: difference >= 0 ? 'green' : 'red' }}>
                                 ${Math.abs(difference).toLocaleString()} {difference >= 0 ? 'ahead' : 'behind'}
                               </TableCell>
