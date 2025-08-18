@@ -16,7 +16,7 @@ export const register = async (req, res) => {
       email,
       firstName,
       lastName,
-      role: role || "user", // שימוש בתפקיד שהתקבל או ברירת מחדל
+      role: role || "user", 
       password: hashed,
       name: profileName || undefined,
       firstName: firstName || undefined,
@@ -46,7 +46,7 @@ export const login = async (req, res) => {
     if (!user) return res.status(400).json({ msg: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ msg: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ msg: "Invalid password" });
 
     const token = jwt.sign(
       { id: user._id, role: user.role },

@@ -10,4 +10,7 @@ router.get('/profile', authMiddleware, UserController.getProfile);
 // Change password
 router.put('/password', authMiddleware, UserController.changePassword);
 
+// Update user profile
+router.put('/profile', authMiddleware, UserController.updateProfile);
+
 export default router;

@@ -1,14 +1,25 @@
-// /src/services/userService.jsx
-import axios from 'axios';
+// client/src/services/userService.jsx
+import axios from "axios";
 
-// FIX: singular path
-const API_URL = 'http://localhost:5000/api/user';
+const API_USER = "http://localhost:5000/api/user";
 
-// make sure these are exported in this file:
-export const getProfile = async () => (await axios.get(`${API_URL}/profile`)).data;
-export const updateProfile = async (profileData) => (await axios.put(`${API_URL}/profile`, profileData)).data;
-export const changePassword = async (currentPassword, newPassword) =>
-  (await axios.put(`${API_URL}/password`, { currentPassword, newPassword })).data;
+export const getUser = async () => {
+  const { data } = await axios.get(`${API_USER}/profile`);
+  return data;
+};
 
-// NEW or ensure it exists:
-export const getFinancialNews = async () => (await axios.get(`${API_URL}/news`)).data;
+// updateUser: שולח שדות firstName, lastName, email
+export const updateUser = async (payload) => {
+  const { data } = await axios.put(`${API_USER}/profile`, payload);
+  return data;
+};
+
+export const changePassword = async (currentPassword, newPassword) => {
+  const { data } = await axios.put(`${API_USER}/password`, { currentPassword, newPassword });
+  return data;
+};
+
+export const getFinancialNews = async () => {
+  const { data } = await axios.get(`${API_USER}/news`);
+  return data;
+};

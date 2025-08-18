@@ -44,7 +44,6 @@ export const loginUser = async (credentials) => {
 // יציאה
 export const logout = () => setAuthToken(null);
 
-// דוגמה לזרימה של איפוס סיסמה אם תממש/י צד שרת
 export const forgotPassword = async (email) => {
   const res = await axios.post(`${API_URL}/forgot-password`, { email });
   return res.data;

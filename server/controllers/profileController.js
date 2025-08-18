@@ -1,6 +1,7 @@
+// server/controllers/profileController.js
 import Profile from "../models/Profile.js";
 
-// GET /api/profile/:userId
+// GET /api/profiles/:userId
 export const getProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ userId: req.params.userId });
@@ -11,19 +12,19 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// POST /api/profile/
+// POST /api/profiles/
 export const createProfile = async (req, res) => {
-  const { userId, monthlyIncome, monthlyExpenses, savings, monthlyInvestment, otherAssets, liabilities } = req.body;
+  const { userId, monthlyIncome, monthlyExpenses, savings, monthlyInvestment, phone, yearlySavingsGoal } = req.body;
 
   try {
     const profile = new Profile({
       userId,
+      phone,
+      yearlySavingsGoal,
       monthlyIncome,
       monthlyExpenses,
       savings,
       monthlyInvestment,
-      otherAssets,
-      liabilities,
     });
     await profile.save();
     res.status(201).json(profile);
@@ -32,24 +33,35 @@ export const createProfile = async (req, res) => {
   }
 };
 
-// PUT /api/profile/:userId
+// PUT /api/profiles/:userId
 export const updateProfile = async (req, res) => {
   try {
+    const updates = {};
+
+    // קבל רק השדות שאנחנו מאפשרים לעדכן
+    const allowed = ["phone", "yearlySavingsGoal", "monthlyIncome", "monthlyExpenses", "savings", "monthlyInvestment"];
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        updates[key] = req.body[key];
+      }
+    }
+
     const profile = await Profile.findOneAndUpdate(
       { userId: req.params.userId },
-      req.body,
-      { new: true }
+      { $set: updates },
+      { new: true, upsert: true } // upsert: אם לא קיים, צור חדש
     );
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
     res.json(profile);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
+// GET /api/profiles (admin)
 export const getProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.find();
+    const profiles = await Profile.find().populate("userId", "email firstName lastName");
     res.json(profiles);
   } catch (err) {
     res.status(500).json({ message: err.message });
