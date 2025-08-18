@@ -35,7 +35,7 @@ import {
   addTransaction,
   deleteTransaction,
   updateTransaction,
-} from "../services/financeService";
+} from "../services/financeService.jsx";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -346,7 +346,7 @@ export default function IncomeExpenses() {
                             <Chip label={r.category} size="small" />
                           </TableCell>
                           <TableCell align="right" style={{ color: r.type === "income" ? "green" : "red" }}>
-                            ${Number(r.amount || 0).toFixed(2)}
+                            ₪{Number(r.amount || 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
                             <Chip label={r.type} size="small" color={r.type === "income" ? "success" : "error"} />

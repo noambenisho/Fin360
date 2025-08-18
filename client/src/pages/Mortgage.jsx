@@ -107,7 +107,7 @@ export default function Mortgage() {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Monthly Payment ($)"
+                    label="Monthly Payment (₪)"
                     name="monthlyPayment"
                     type="number"
                     value={formData.monthlyPayment}
