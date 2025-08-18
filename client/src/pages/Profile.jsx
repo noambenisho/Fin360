@@ -7,7 +7,6 @@ import {
 import { Email, Phone, MonetizationOn } from "@mui/icons-material";
 
 import * as userService from "../services/userService";
-import * as profileService from "../services/profileService";
 
 function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 3 }}>{children}</Box> : null;
@@ -19,11 +18,9 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // user (from /api/user/profile)
   const [user, setUser] = useState(null);
   const [userForm, setUserForm] = useState({ firstName: "", lastName: "", email: "" });
 
-  // profile (from /api/profiles/:userId)
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState({
     phone: "",
@@ -39,30 +36,35 @@ export default function Profile() {
       setLoading(true);
       setError("");
       try {
+        // backend returns { user, profile }
         const me = await userService.getUser();
-        const uid = me._id || me.id || me._doc?._id;
-        setUser({ _id: uid, firstName: me.firstName || "", lastName: me.lastName || "", email: me.email || "" });
-        setUserForm({ firstName: me.firstName || "", lastName: me.lastName || "", email: me.email || "" });
 
-        if (uid) {
-          try {
-            const p = await profileService.getProfileByUserId(uid);
-            setProfile(p);
-            setProfileForm({
-              phone: p.phone || "",
-              yearlySavingsGoal: p.yearlySavingsGoal != null ? String(p.yearlySavingsGoal) : "",
-              monthlyIncome: p.monthlyIncome != null ? String(p.monthlyIncome) : "",
-              monthlyExpenses: p.monthlyExpenses != null ? String(p.monthlyExpenses) : "",
-              savings: p.savings != null ? String(p.savings) : "",
-              monthlyInvestment: p.monthlyInvestment != null ? String(p.monthlyInvestment) : ""
-            });
-          } catch (errProfile) {
-            // אם אין פרופיל — נשאיר ריק; המשתמש יכול ליצור אותו
-            setProfile(null);
-          }
-        }
+        const u = me.user || me;
+        const p = me.profile || {};
+
+        setUser({
+          _id: u._id || u.id,
+          firstName: u.firstName || "",
+          lastName: u.lastName || "",
+          email: u.email || ""
+        });
+
+        setUserForm({
+          firstName: u.firstName || "",
+          lastName: u.lastName || "",
+          email: u.email || ""
+        });
+
+        setProfile(p || null);
+        setProfileForm({
+          phone: p.phone || "",
+          yearlySavingsGoal: p.yearlySavingsGoal != null ? String(p.yearlySavingsGoal) : "",
+          monthlyIncome: p.monthlyIncome != null ? String(p.monthlyIncome) : "",
+          monthlyExpenses: p.monthlyExpenses != null ? String(p.monthlyExpenses) : "",
+          savings: p.savings != null ? String(p.savings) : "",
+          monthlyInvestment: p.monthlyInvestment != null ? String(p.monthlyInvestment) : ""
+        });
       } catch (err) {
-        console.error(err);
         setError(err?.response?.data?.message || err?.message || "Failed to load profile");
       } finally {
         setLoading(false);
@@ -71,86 +73,81 @@ export default function Profile() {
     load();
   }, []);
 
-  const handleUserChange = (e) => setUserForm(s => ({ ...s, [e.target.name]: e.target.value }));
-  const handleProfileChange = (e) => setProfileForm(s => ({ ...s, [e.target.name]: e.target.value }));
+  const handleUserChange = (e) =>
+    setUserForm(s => ({ ...s, [e.target.name]: e.target.value }));
+
+  const handleProfileChange = (e) =>
+    setProfileForm(s => ({ ...s, [e.target.name]: e.target.value }));
+
   const handleTabChange = (_e, v) => setTabValue(v);
 
-  // single handler to save BOTH user + profile
+  // ✅ Single save that updates BOTH user + profile on /api/user/profile
   const handleSaveAll = async (e) => {
     e && e.preventDefault();
     setLoading(true);
     setError("");
     setSuccessMessage("");
+
     try {
-      // 1) update user (name/email)
-      const userPayload = {
+      const payload = {
+        // personal
         firstName: userForm.firstName,
         lastName: userForm.lastName,
-        email: userForm.email
-      };
-      const updatedUserResp = await userService.updateUser(userPayload);
-      // server might return { user, profile } or user only
-      const newUser = updatedUserResp?.user || updatedUserResp || {};
-      setUser(prev => ({ _id: prev?._id || newUser._id || prev?._id, firstName: newUser.firstName || userForm.firstName, lastName: newUser.lastName || userForm.lastName, email: newUser.email || userForm.email }));
-      setUserForm({ firstName: newUser.firstName || userForm.firstName, lastName: newUser.lastName || userForm.lastName, email: newUser.email || userForm.email });
-
-      // 2) prepare profile payload (convert numeric fields)
-      const payload = {
-        phone: profileForm.phone || "",
-        yearlySavingsGoal: profileForm.yearlySavingsGoal === "" ? 0 : Number(profileForm.yearlySavingsGoal),
-        monthlyIncome: profileForm.monthlyIncome === "" ? 0 : Number(profileForm.monthlyIncome),
-        monthlyExpenses: profileForm.monthlyExpenses === "" ? 0 : Number(profileForm.monthlyExpenses),
-        savings: profileForm.savings === "" ? 0 : Number(profileForm.savings),
-        monthlyInvestment: profileForm.monthlyInvestment === "" ? 0 : Number(profileForm.monthlyInvestment)
+        email: userForm.email,
+        // financial (coerce only if not empty; otherwise omit so we don’t overwrite)
+        phone: profileForm.phone || undefined,
+        yearlySavingsGoal:
+          profileForm.yearlySavingsGoal === "" ? undefined : Number(profileForm.yearlySavingsGoal),
+        monthlyIncome:
+          profileForm.monthlyIncome === "" ? undefined : Number(profileForm.monthlyIncome),
+        monthlyExpenses:
+          profileForm.monthlyExpenses === "" ? undefined : Number(profileForm.monthlyExpenses),
+        savings:
+          profileForm.savings === "" ? undefined : Number(profileForm.savings),
+        monthlyInvestment:
+          profileForm.monthlyInvestment === "" ? undefined : Number(profileForm.monthlyInvestment),
       };
 
-      // If server returned profile in user update — use it; else call profile endpoints
-      let finalProfile = updatedUserResp?.profile || null;
-      if (!finalProfile) {
-        const uid = user?._id || newUser._id;
-        if (!uid) throw new Error("No user id available to update profile");
+      const { user: updatedUser, profile: updatedProfile } = await userService.updateUser(payload);
 
-        try {
-          finalProfile = await profileService.updateProfileByUserId(uid, payload);
-        } catch (errUpdate) {
-          // אם update החזיר 404/לא קיים — צור חדש
-          const status = errUpdate?.response?.status;
-          if (status === 404 || !profile) {
-            finalProfile = await profileService.createProfile({ userId: uid, ...payload });
-          } else {
-            throw errUpdate;
-          }
-        }
-      }
+      setUser({
+        _id: (user?._id) || updatedUser?._id,
+        firstName: updatedUser?.firstName ?? userForm.firstName,
+        lastName: updatedUser?.lastName ?? userForm.lastName,
+        email: updatedUser?.email ?? userForm.email
+      });
 
-      // update local state with finalProfile
-      if (finalProfile) {
-        setProfile(finalProfile);
-        setProfileForm({
-          phone: finalProfile.phone || "",
-          yearlySavingsGoal: finalProfile.yearlySavingsGoal != null ? String(finalProfile.yearlySavingsGoal) : "",
-          monthlyIncome: finalProfile.monthlyIncome != null ? String(finalProfile.monthlyIncome) : "",
-          monthlyExpenses: finalProfile.monthlyExpenses != null ? String(finalProfile.monthlyExpenses) : "",
-          savings: finalProfile.savings != null ? String(finalProfile.savings) : "",
-          monthlyInvestment: finalProfile.monthlyInvestment != null ? String(finalProfile.monthlyInvestment) : ""
-        });
-      }
+      const p = updatedProfile || {};
+      setProfile(p);
+      setProfileForm({
+        phone: p.phone || "",
+        yearlySavingsGoal: p.yearlySavingsGoal != null ? String(p.yearlySavingsGoal) : "",
+        monthlyIncome: p.monthlyIncome != null ? String(p.monthlyIncome) : "",
+        monthlyExpenses: p.monthlyExpenses != null ? String(p.monthlyExpenses) : "",
+        savings: p.savings != null ? String(p.savings) : "",
+        monthlyInvestment: p.monthlyInvestment != null ? String(p.monthlyInvestment) : ""
+      });
 
       setSuccessMessage("Saved user and profile successfully");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      setTimeout(() => setSuccessMessage(""), 2500);
     } catch (err) {
-      console.error(err);
       setError(err?.response?.data?.message || err?.message || "Failed to save");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom>User Profile</Typography>
+      <br/>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
@@ -171,8 +168,14 @@ export default function Profile() {
                   {((user?.firstName || " ")[0] || "") + ((user?.lastName || " ")[0] || "")}
                 </Avatar>
                 <Typography variant="h5">{user?.firstName} {user?.lastName}</Typography>
-                <Typography color="text.secondary" gutterBottom><Email fontSize="small" sx={{ mr: 1 }} />{user?.email}</Typography>
-                <Typography color="text.secondary"><Phone fontSize="small" sx={{ mr: 1 }} />{profile?.phone || "Not provided"}</Typography>
+                <Typography color="text.secondary" gutterBottom>
+                  <Email fontSize="small" sx={{ mr: 1 }} />
+                  {user?.email}
+                </Typography>
+                <Typography color="text.secondary">
+                  <Phone fontSize="small" sx={{ mr: 1 }} />
+                  {profile?.phone || "Not provided"}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -184,22 +187,109 @@ export default function Profile() {
                 <form onSubmit={handleSaveAll}>
                   <Grid container spacing={2}>
                     {/* User fields */}
-                    <Grid item xs={12} sm={6}><TextField label="First Name" name="firstName" value={userForm.firstName} onChange={handleUserChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Last Name" name="lastName" value={userForm.lastName} onChange={handleUserChange} fullWidth /></Grid>
-                    <Grid item xs={12}><TextField label="Email" name="email" value={userForm.email} onChange={handleUserChange} fullWidth /></Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="First Name"
+                        name="firstName"
+                        value={userForm.firstName}
+                        onChange={handleUserChange}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Last Name"
+                        name="lastName"
+                        value={userForm.lastName}
+                        onChange={handleUserChange}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Email"
+                        name="email"
+                        value={userForm.email}
+                        onChange={handleUserChange}
+                        fullWidth
+                      />
+                    </Grid>
 
                     <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
 
                     {/* Profile fields */}
-                    <Grid item xs={12}><Typography variant="subtitle1">Financial Fields (saved to Profile)</Typography></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Phone" name="phone" value={profileForm.phone} onChange={handleProfileChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Yearly Savings Goal" name="yearlySavingsGoal" type="number" value={profileForm.yearlySavingsGoal} onChange={handleProfileChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Monthly Income" name="monthlyIncome" type="number" value={profileForm.monthlyIncome} onChange={handleProfileChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Monthly Expenses" name="monthlyExpenses" type="number" value={profileForm.monthlyExpenses} onChange={handleProfileChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Current Savings" name="savings" type="number" value={profileForm.savings} onChange={handleProfileChange} fullWidth /></Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Monthly Investment" name="monthlyInvestment" type="number" value={profileForm.monthlyInvestment} onChange={handleProfileChange} fullWidth /></Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1">Financial Fields (saved to Profile)</Typography>
+                    </Grid>
 
-                    <Grid item xs={12}><Button type="submit" variant="contained">Save Personal & Financial</Button></Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Phone"
+                        name="phone"
+                        value={profileForm.phone}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Yearly Savings Goal"
+                        name="yearlySavingsGoal"
+                        type="number"
+                        value={profileForm.yearlySavingsGoal}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Monthly Income"
+                        name="monthlyIncome"
+                        type="number"
+                        value={profileForm.monthlyIncome}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Monthly Expenses"
+                        name="monthlyExpenses"
+                        type="number"
+                        value={profileForm.monthlyExpenses}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Current Savings"
+                        name="savings"
+                        type="number"
+                        value={profileForm.savings}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Monthly Investment"
+                        name="monthlyInvestment"
+                        type="number"
+                        value={profileForm.monthlyInvestment}
+                        onChange={handleProfileChange}
+                        fullWidth
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Button type="submit" variant="contained">Save Personal & Financial</Button>
+                    </Grid>
                   </Grid>
                 </form>
               </CardContent>
@@ -213,9 +303,9 @@ export default function Profile() {
         <Card sx={{ mt: 2 }}>
           <CardContent>
             <Typography variant="h6">Change Password</Typography>
-            <form onSubmit={async (e) => { e.preventDefault(); /* handled separately if needed */ }}>
-              <Typography variant="body2" color="text.secondary">Use the Change Password tab's form on your old code or wire it to changePassword()</Typography>
-            </form>
+            <Typography variant="body2" color="text.secondary">
+              Hook this tab to userService.changePassword(currentPassword, newPassword) if you want a working form here.
+            </Typography>
           </CardContent>
         </Card>
       </TabPanel>
@@ -227,8 +317,13 @@ export default function Profile() {
             <Card>
               <CardContent>
                 <Typography variant="h6">Financial Status</Typography>
-                <Typography variant="subtitle1" gutterBottom><MonetizationOn color="primary" sx={{ mr: 1 }} />Yearly Savings Goal: {profile?.yearlySavingsGoal ? `$${Number(profile.yearlySavingsGoal).toLocaleString()}` : "Not set"}</Typography>
-                <Typography>Current progress: ${Number(profile?.savings || 0).toLocaleString()} ({profile?.yearlySavingsGoal ? `${Math.min(((profile.savings || 0) / profile.yearlySavingsGoal) * 100, 100).toFixed(1)}%` : "0%"})</Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                  <MonetizationOn color="primary" sx={{ mr: 1 }} />
+                  Yearly Savings Goal: {profile?.yearlySavingsGoal ? `$${Number(profile.yearlySavingsGoal).toLocaleString()}` : "Not set"}
+                </Typography>
+                <Typography>
+                  Current progress: ${Number(profile?.savings || 0).toLocaleString()} ({profile?.yearlySavingsGoal ? `${Math.min(((profile.savings || 0) / profile.yearlySavingsGoal) * 100, 100).toFixed(1)}%` : "0%"})
+                </Typography>
               </CardContent>
             </Card>
           </Grid>

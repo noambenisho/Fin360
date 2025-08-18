@@ -1,17 +1,18 @@
+// server/controllers/userController.js
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import Profile from "../models/Profile.js";
 
+const toNumOrUndefined = (v) =>
+  v === undefined || v === null || v === "" ? undefined : Number(v);
+
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
     let profile = await Profile.findOne({ userId: req.user.id });
     if (!profile) {
-      // אם עוד לא נוצר פרופיל – ניצור אחד חדש עם ערכי ברירת מחדל
       profile = new Profile({ userId: req.user.id });
       await profile.save();
     }
@@ -45,38 +46,45 @@ const changePassword = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, email, phone, yearlySavingsGoal, monthlyIncome, monthlyExpenses, savings, monthlyInvestment } = req.body;
+    const {
+      firstName, lastName, email, phone,
+      yearlySavingsGoal, monthlyIncome, monthlyExpenses, savings, monthlyInvestment
+    } = req.body;
 
-    // עדכון User (שם/אימייל)
+    // Update user (safe: only defined values)
+    const userUpdates = {};
+    if (firstName !== undefined) userUpdates.firstName = firstName;
+    if (lastName !== undefined) userUpdates.lastName = lastName;
+    if (email !== undefined) userUpdates.email = email;
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { firstName, lastName, email },
+      userUpdates,
       { new: true }
     ).select("-password");
 
-    // עדכון או יצירת פרופיל פיננסי מלא
+    // Upsert profile (preserve when fields omitted)
     let profile = await Profile.findOne({ userId });
     if (!profile) {
       profile = new Profile({
         userId,
-        phone: phone || "",
-        yearlySavingsGoal: yearlySavingsGoal ?? 0,
-        monthlyIncome: monthlyIncome ?? 0,
-        monthlyExpenses: monthlyExpenses ?? 0,
-        savings: savings ?? 0,
-        monthlyInvestment: monthlyInvestment ?? 0
+        phone: phone ?? "",
+        yearlySavingsGoal: toNumOrUndefined(yearlySavingsGoal) ?? 0,
+        monthlyIncome: toNumOrUndefined(monthlyIncome) ?? 0,
+        monthlyExpenses: toNumOrUndefined(monthlyExpenses) ?? 0,
+        savings: toNumOrUndefined(savings) ?? 0,
+        monthlyInvestment: toNumOrUndefined(monthlyInvestment) ?? 0
       });
     } else {
-      profile.phone = phone ?? profile.phone;
-      profile.yearlySavingsGoal = yearlySavingsGoal ?? profile.yearlySavingsGoal;
-      profile.monthlyIncome = monthlyIncome ?? profile.monthlyIncome;
-      profile.monthlyExpenses = monthlyExpenses ?? profile.monthlyExpenses;
-      profile.savings = savings ?? profile.savings;
-      profile.monthlyInvestment = monthlyInvestment ?? profile.monthlyInvestment;
+      if (phone !== undefined) profile.phone = phone;
+      if (yearlySavingsGoal !== undefined) profile.yearlySavingsGoal = toNumOrUndefined(yearlySavingsGoal);
+      if (monthlyIncome !== undefined) profile.monthlyIncome = toNumOrUndefined(monthlyIncome);
+      if (monthlyExpenses !== undefined) profile.monthlyExpenses = toNumOrUndefined(monthlyExpenses);
+      if (savings !== undefined) profile.savings = toNumOrUndefined(savings);
+      if (monthlyInvestment !== undefined) profile.monthlyInvestment = toNumOrUndefined(monthlyInvestment);
     }
-    await profile.save();
 
-    // החזר שני הסמכים כדי שהלקוח יעדכן את ה-state בקלות
+    await profile.save();
     res.json({ user: updatedUser, profile });
   } catch (err) {
     console.error(err);

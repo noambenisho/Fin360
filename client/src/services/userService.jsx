@@ -3,15 +3,18 @@ import axios from "axios";
 
 const API_USER = "http://localhost:5000/api/user";
 
+// Returns { user, profile }
 export const getUser = async () => {
   const { data } = await axios.get(`${API_USER}/profile`);
   return data;
 };
 
-// updateUser: שולח שדות firstName, lastName, email
+// ✅ Update both user + profile in a single call.
+// Pass any subset of: firstName, lastName, email, phone,
+// yearlySavingsGoal, monthlyIncome, monthlyExpenses, savings, monthlyInvestment
 export const updateUser = async (payload) => {
   const { data } = await axios.put(`${API_USER}/profile`, payload);
-  return data;
+  return data; // { user, profile }
 };
 
 export const changePassword = async (currentPassword, newPassword) => {
