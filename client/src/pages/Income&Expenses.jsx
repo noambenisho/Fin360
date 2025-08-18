@@ -531,26 +531,6 @@ export default function IncomeExpenses() {
               </CardContent>
             </Card>
           </Grid>
-
-          {/* Small summary card ---------------------------------*/}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Quick Summary
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Typography variant="body1">
-                  Records: <b>{records.length}</b>
-                </Typography>
-                <Typography variant="body1" sx={{ mt: 1 }}>
-                  This form posts to <code>/api/transactions</code> and updates with{" "}
-                  <code>PUT /api/transactions/:id</code> using your JWT.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          {/* Small summary card ---------------------------------*/}
         </Grid>
       </TabPanel>
     </Box>

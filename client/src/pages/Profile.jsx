@@ -18,6 +18,7 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // user + profile states
   const [user, setUser] = useState(null);
   const [userForm, setUserForm] = useState({ firstName: "", lastName: "", email: "" });
 
@@ -30,6 +31,16 @@ export default function Profile() {
     savings: "",
     monthlyInvestment: ""
   });
+
+  // change password states
+  const [pwForm, setPwForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -81,7 +92,7 @@ export default function Profile() {
 
   const handleTabChange = (_e, v) => setTabValue(v);
 
-  // ✅ Single save that updates BOTH user + profile on /api/user/profile
+  // Save BOTH user + profile
   const handleSaveAll = async (e) => {
     e && e.preventDefault();
     setLoading(true);
@@ -94,7 +105,7 @@ export default function Profile() {
         firstName: userForm.firstName,
         lastName: userForm.lastName,
         email: userForm.email,
-        // financial (coerce only if not empty; otherwise omit so we don’t overwrite)
+        // financial (omit if empty to avoid overwriting)
         phone: profileForm.phone || undefined,
         yearlySavingsGoal:
           profileForm.yearlySavingsGoal === "" ? undefined : Number(profileForm.yearlySavingsGoal),
@@ -134,6 +145,43 @@ export default function Profile() {
       setError(err?.response?.data?.message || err?.message || "Failed to save");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Change password handler
+  const handlePwChange = (e) => {
+    const { name, value } = e.target;
+    setPwForm(s => ({ ...s, [name]: value }));
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+
+    if (!pwForm.currentPassword || !pwForm.newPassword || !pwForm.confirmPassword) {
+      setPwError("Please fill all password fields.");
+      return;
+    }
+    if (pwForm.newPassword.length < 6) {
+      setPwError("New password must be at least 6 characters.");
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError("New password and confirmation do not match.");
+      return;
+    }
+
+    try {
+      setPwLoading(true);
+      await userService.changePassword(pwForm.currentPassword, pwForm.newPassword);
+      setPwSuccess("Password updated successfully.");
+      setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => setPwSuccess(""), 2500);
+    } catch (err) {
+      setPwError(err?.response?.data?.msg || err?.message || "Failed to change password.");
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -300,12 +348,54 @@ export default function Profile() {
 
       {/* Tab 1 - Change password */}
       <TabPanel value={tabValue} index={1}>
-        <Card sx={{ mt: 2 }}>
-          <CardContent>
-            <Typography variant="h6">Change Password</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Hook this tab to userService.changePassword(currentPassword, newPassword) if you want a working form here.
-            </Typography>
+        <Card sx={{ mt: 2, maxWidth: 520 }}>
+          <CardContent component="form" onSubmit={handleChangePassword}>
+            <Typography variant="h6" gutterBottom>Change Password</Typography>
+
+            {pwError && <Alert severity="error" sx={{ mb: 2 }}>{pwError}</Alert>}
+            {pwSuccess && <Alert severity="success" sx={{ mb: 2 }}>{pwSuccess}</Alert>}
+
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Current Password"
+                  name="currentPassword"
+                  type="password"
+                  value={pwForm.currentPassword}
+                  onChange={handlePwChange}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="New Password"
+                  name="newPassword"
+                  type="password"
+                  value={pwForm.newPassword}
+                  onChange={handlePwChange}
+                  fullWidth
+                  required
+                  helperText="At least 6 characters"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Confirm New Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={pwForm.confirmPassword}
+                  onChange={handlePwChange}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button type="submit" variant="contained" disabled={pwLoading}>
+                  {pwLoading ? "Updating..." : "Update Password"}
+                </Button>
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       </TabPanel>
