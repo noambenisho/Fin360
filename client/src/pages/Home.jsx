@@ -21,7 +21,7 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const data = await getFinancialSummary();
-        console.log("Financial summary data:", data);
+        //console.log("Financial summary data:", data);
         setSummary(data);
       } catch (err) {
         setError(err.message);
