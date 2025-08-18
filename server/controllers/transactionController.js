@@ -2,14 +2,14 @@ import Transaction from '../models/Transaction.js';
 
 export const getMonthlySummary = async (req, res) => {
     try {
-        console.log('User ID:', req.user.id); // לוג לבדיקה
+        // console.log('User ID:', req.user.id); // לוג לבדיקה
 
         // קבל את כל העסקאות של המשתמש
         const transactions = await Transaction.find({
             userId: req.user.id
         });
 
-        console.log('Found transactions:', transactions); // לוג לבדיקה
+        // console.log('Found transactions:', transactions); // לוג לבדיקה
 
         // חישוב סכומים כוללים והוצאות לפי קטגוריה
         const summary = transactions.reduce((acc, transaction) => {
@@ -99,7 +99,7 @@ export const getMonthlySummary = async (req, res) => {
             }
         ];
 
-        console.log('Sending summary:', summary); // לוג לבדיקה
+        //console.log('Sending summary:', summary); // לוג לבדיקה
         res.json(summary);
 
     } catch (error) {

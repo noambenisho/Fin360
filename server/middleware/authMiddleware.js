@@ -17,7 +17,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ msg: "User not found" });
     }
 
-    req.user = { id: user._id, role: user.role }; // נשמור גם role
+    req.user = { id: user._id, role: user.role }; 
     next();
   } catch (err) {
     return res.status(401).json({ msg: "Token is not valid" });

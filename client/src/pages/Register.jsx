@@ -23,16 +23,18 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    acceptTerms: false
+    acceptTerms: false,
+    isAdmin: false,
+    adminCode: ''
   });
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, checked } = e.target;
+    const { name, value, checked, type } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'acceptTerms' ? checked : value
+      [name]: type === "checkbox" ? checked : value
     });
   };
 
@@ -46,7 +48,15 @@ export default function Register() {
     else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     if (!formData.acceptTerms) newErrors.acceptTerms = 'You must accept the terms and conditions';
-    
+
+    if (formData.isAdmin) {
+      if (!formData.adminCode) {
+        newErrors.adminCode = 'Admin code is required';
+      } else if (formData.adminCode !== '123') {
+        newErrors.adminCode = 'Invalid admin code';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -55,7 +65,12 @@ export default function Register() {
     e.preventDefault();
     if (validate()) {
       try {
-        await registerUser(formData);
+        console.log(formData)
+        const { confirmPassword, acceptTerms, adminCode, ...registerData } = formData;
+        if (formData.isAdmin) registerData.role = 'admin';
+
+        console.log(registerData);
+        await registerUser(registerData);
         navigate('/login');
       } catch (error) {
         setErrors({ ...errors, api: error.message });
@@ -64,9 +79,7 @@ export default function Register() {
   };
 
   return (
-    <Box
-     
-    >
+    <Box>
       <CssBaseline />
       <Container maxWidth="xs">
         <Paper
@@ -86,11 +99,13 @@ export default function Register() {
           <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
             Create an Account
           </Typography>
+
           {errors.api && (
             <Typography color="error" variant="body2" sx={{ mb: 2 }}>
               {errors.api}
             </Typography>
           )}
+
           <Box component="form" noValidate onSubmit={handleSubmit}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -165,9 +180,17 @@ export default function Register() {
                   helperText={errors.confirmPassword}
                 />
               </Grid>
+
               <Grid item xs={12}>
                 <FormControlLabel
-                  control={<Checkbox name="acceptTerms" color="primary" checked={formData.acceptTerms} onChange={handleChange} />}
+                  control={
+                    <Checkbox
+                      name="acceptTerms"
+                      color="primary"
+                      checked={formData.acceptTerms}
+                      onChange={handleChange}
+                    />
+                  }
                   label="I accept the terms and conditions"
                 />
                 {errors.acceptTerms && (
@@ -176,21 +199,58 @@ export default function Register() {
                   </Typography>
                 )}
               </Grid>
+
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.isAdmin}
+                      onChange={(e) => {
+                        handleChange({
+                          target: {
+                            name: 'isAdmin',
+                            value: e.target.checked
+                          }
+                        });
+                        if (!e.target.checked) {
+                          handleChange({
+                            target: { name: 'adminCode', value: '' }
+                          });
+                        }
+                      }}
+                      name="isAdmin"
+                    />
+                  }
+                  label="Register as Admin"
+                />
+              </Grid>
+
+              {formData.isAdmin && (
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="adminCode"
+                    label="Admin Code"
+                    type="password"
+                    value={formData.adminCode}
+                    onChange={handleChange}
+                    error={!!errors.adminCode}
+                    helperText={errors.adminCode}
+                  />
+                </Grid>
+              )}
             </Grid>
+
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              sx={{
-                mt: 3,
-                mb: 2,
-                py: 1.5,
-                fontSize: '1rem',
-                borderRadius: 2
-              }}
+              sx={{ mt: 3, mb: 2, py: 1.5, fontSize: '1rem', borderRadius: 2 }}
             >
               Sign Up
             </Button>
+
             <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link to="/login" style={{ textDecoration: 'none', color: '#1976d2' }}>

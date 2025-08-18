@@ -9,6 +9,7 @@ import Profile from "./pages/Profile";
 import FinancialNews from "./components/FinancialNews";
 import CrudTester from "./pages/CrudTester";
 import PrivateRoute from "./routes/PrivateRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function AppRouter() {
   return (
@@ -27,6 +28,14 @@ export default function AppRouter() {
         }
       />
       <Route path="/profile" element={<Profile />} />
+      <Route
+        path="/admin"
+        element={
+          <PrivateRoute adminOnly>
+            <AdminDashboard />
+          </PrivateRoute>
+        } 
+      />
       <Route path="/news" element={<FinancialNews />} />
       <Route path="/crud-test" element={<CrudTester />} />
     </Routes>
