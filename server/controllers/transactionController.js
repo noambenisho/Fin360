@@ -15,6 +15,8 @@ export const getMonthlySummary = async (req, res) => {
         const summary = transactions.reduce((acc, transaction) => {
             if (transaction.type === 'income') {
                 acc.income += transaction.amount;
+                // הוספת הכנסות לפי קטגוריה
+                acc.incomesByCategory[transaction.category] = (acc.incomesByCategory[transaction.category] || 0) + transaction.amount;
             } else {
                 acc.expenses += transaction.amount;
                 // הוספת הוצאות לפי קטגוריה
@@ -25,6 +27,7 @@ export const getMonthlySummary = async (req, res) => {
             income: 0, 
             expenses: 0,
             expensesByCategory: {},
+            incomesByCategory: {},
             alerts: []
         });
 
@@ -39,74 +42,35 @@ export const getMonthlySummary = async (req, res) => {
             });
         }
 
-        if (summary.expenses > 0 && (summary.expenses / summary.income) > 0.8) {
+        if (summary.expenses > 0 && summary.income > 0 && (summary.expenses / summary.income) > 0.8) {
             summary.alerts.push({
                 severity: 'info',
                 message: 'You are spending more than 80% of your income'
             });
         }
 
-        // המרת הקטגוריות למערך
+        // המרת הקטגוריות למערך - הוצאות
         summary.expenseCategories = Object.entries(summary.expensesByCategory).map(([category, value]) => ({
             id: category,
             value,
             label: category
         }));
 
-        // מחיקת האובייקט המקורי של הקטגוריות
-        delete summary.expensesByCategory;
-
-        console.log('Sending summary:', summary); // לוג לבדיקה
-        res.json(summary);
-    } catch (error) {
-        console.error('Error in getMonthlySummary:', error);
-        res.status(500).json({ message: 'Error fetching monthly summary' });
-    }
-
-        // אתחול המערכים עם החודשים
-        summary.months = lastSixMonths.map(m => m.month);
-        summary.monthlyIncome = new Array(6).fill(0);
-        summary.monthlyExpenses = new Array(6).fill(0);
-
-        // חישוב הנתונים החודשיים
-        transactions.forEach(transaction => {
-            const transDate = new Date(transaction.date);
-            const monthIndex = lastSixMonths.findIndex(m => 
-                transDate >= m.startDate && transDate <= m.endDate
-            );
-            
-            if (monthIndex !== -1) {
-                if (transaction.type === 'income') {
-                    summary.income += transaction.amount;
-                    summary.monthlyIncome[monthIndex] += transaction.amount;
-                } else {
-                    summary.expenses += transaction.amount;
-                    summary.monthlyExpenses[monthIndex] += transaction.amount;
-                }
-            }
-        });
-        
-        summary.netBalance = summary.income - summary.expenses;
-
-        // חישוב הוצאות לפי קטגוריה לתרשים העוגה
-        const expensesByCategory = {};
-        transactions.forEach(transaction => {
-            if (transaction.type === 'expense') {
-                expensesByCategory[transaction.category] = (expensesByCategory[transaction.category] || 0) + transaction.amount;
-            }
-        });
-
-        // המרת הקטגוריות למבנה שהגרף מצפה לו
-        summary.expenseCategories = Object.entries(expensesByCategory).map(([category, value]) => ({
+        // המרת הקטגוריות למערך - הכנסות
+        summary.incomeCategories = Object.entries(summary.incomesByCategory).map(([category, value]) => ({
             id: category,
-            value: value,
+            value,
             label: category
         }));
 
-        summary.expenseCategories = Object.entries(expensesByCategory).map(([label, value]) => ({
-            label,
-            value
-        }));
+        // הוספת עסקאות אחרונות (10 האחרונות)
+        summary.recentTransactions = transactions
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 10);
+
+        // מחיקת האובייקטים המקוריים של הקטגוריות
+        delete summary.expensesByCategory;
+        delete summary.incomesByCategory;
 
         // חישוב נתונים חודשיים לגרף
         const months = Array.from({ length: 12 }, (_, i) => {
@@ -116,25 +80,28 @@ export const getMonthlySummary = async (req, res) => {
         }).reverse();
 
         summary.months = months;
-        summary.monthlyIncome = Array(12).fill(0);  // נתונים לדוגמה
-        summary.monthlyExpenses = Array(12).fill(0); // נתונים לדוגמה
+        summary.monthlyIncome = Array(12).fill(0);
+        summary.monthlyExpenses = Array(12).fill(0);
 
-        // הוספת התראות
-        if (summary.expenses > summary.income) {
-            summary.alerts.push({
-                severity: 'warning',
-                message: 'Your expenses are higher than your income this month'
-            });
-        }
+        // הוספת טיפ פיננסי (דוגמה)
+        summary.tip = {
+            content: "Track your expenses daily to better understand your spending patterns.",
+            category: "Budgeting"
+        };
 
-        if (summary.expenses > 0 && (summary.expenses / summary.income) > 0.8) {
-            summary.alerts.push({
-                severity: 'info',
-                message: 'You are spending more than 80% of your income'
-            });
-        }
+        // הוספת חדשות פיננסיות (דוגמה)
+        summary.news = [
+            {
+                title: "Market Update",
+                summary: "Stay informed about the latest market trends.",
+                source: "Financial Times",
+                timePublished: new Date().toISOString()
+            }
+        ];
 
+        console.log('Sending summary:', summary); // לוג לבדיקה
         res.json(summary);
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
