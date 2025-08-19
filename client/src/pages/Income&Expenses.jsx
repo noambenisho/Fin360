@@ -47,6 +47,9 @@ function TabPanel(props) {
 }
 
 const categories = [
+  "Salary",
+  "Freelance",
+  "Investment",
   "Housing",
   "Food",
   "Transportation",
