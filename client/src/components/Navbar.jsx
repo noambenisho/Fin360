@@ -77,6 +77,11 @@ export default function Navbar() {
                 Profile
               </Button>
             )}
+            {user && user.role === "admin" && (
+              <Button color="inherit" component={Link} to="/admin">
+                Admin Dashboard
+              </Button>
+            )}
             {user ? (
               <Button color="inherit" onClick={handleLogout}>
                 Logout
@@ -84,11 +89,6 @@ export default function Navbar() {
             ) : (
               <Button color="inherit" component={Link} to="/login">
                 Login
-              </Button>
-            )}
-            {user && user.role === "admin" && (
-              <Button color="inherit" component={Link} to="/admin">
-                Admin Dashboard
               </Button>
             )}
           </Box>

@@ -38,7 +38,8 @@ export default function IsraeliTaxCalculator() {
   const [formData, setFormData] = useState({
     income: '',
     period: 'annual',
-    deductions: '0'
+    deductions: '0',
+    creditPoints: '2.25' // Default credit points value in Israeli tax system
   });
   const [results, setResults] = useState(null);
 
@@ -50,6 +51,10 @@ export default function IsraeliTaxCalculator() {
   const calculateTax = () => {
     let income = parseFloat(formData.income) || 0;
     if (formData.period === 'monthly') income *= 12;
+
+    const creditPointValue = 2820; // 2025 value of a credit point in NIS
+    const creditPoints = parseFloat(formData.creditPoints) || 2.25; // Default to 2.25 points if not specified
+
 
     const deductions = parseFloat(formData.deductions) || 0;
     const taxableIncome = Math.max(0, income - deductions);
@@ -68,6 +73,9 @@ export default function IsraeliTaxCalculator() {
       surtax = (taxableIncome - surtaxThreshold) * surtaxRate;
       tax += surtax;
     }
+
+    const creditReduction = creditPoints * creditPointValue;
+    tax = Math.max(0, tax - creditReduction);
 
     setResults({
       taxableIncome,
@@ -134,6 +142,19 @@ export default function IsraeliTaxCalculator() {
                     name="deductions"
                     type="number"
                     value={formData.deductions}
+                    onChange={handleChange}
+                    variant="outlined"
+                    InputProps={{ inputProps: { min: 0 } }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Credit Points (₪)"
+                    name="creditPoints"
+                    type="number"
+                    value={formData.creditPoints}
                     onChange={handleChange}
                     variant="outlined"
                     InputProps={{ inputProps: { min: 0 } }}
