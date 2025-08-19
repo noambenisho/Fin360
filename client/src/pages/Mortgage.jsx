@@ -34,7 +34,7 @@ export default function Mortgage() {
   const [formData, setFormData] = useState({
     // Mortgage details
     initialHousePrice: 2000000,
-    downPayment: 600000,
+    downPayment: 500000,
     monthlyPayment: 5000, // יוחלף בחישוב אמיתי לפי הריבית והתקופה
     mortgageRate: 4.5,
     monthlyRent: 4000, // הכנסה חודשית (אם רלוונטי)
