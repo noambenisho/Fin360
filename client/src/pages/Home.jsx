@@ -12,6 +12,8 @@ import {
   Avatar,
   Chip,
   Button,
+  CardMedia,
+  Link,
 } from "@mui/material";
 import { PieChart } from "@mui/x-charts";
 import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
@@ -23,6 +25,9 @@ import { keyframes } from "@mui/system";
 import { getFinancialSummary } from "../services/financeService.jsx";
 import * as userService from "../services/userService"; // uses your Profile page service
 import tips from "../context/tips.json"; // 👈 import tips JSON
+
+// Finnhub key (consider moving to .env for production)
+const FINNHUB_KEY = "d2gtoshr01qon4e9igpgd2gtoshr01qon4e9igq0";
 
 // More noticeable hero animation: gentle float + glow pulse
 const floatGlow = keyframes`
@@ -39,29 +44,21 @@ export default function Home() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [tipOfTheDay, setTipOfTheDay] = useState("");
 
+  // 🔹 News state (Finnhub)
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsError, setNewsError] = useState("");
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       setError("");
 
-    const randomTip = tips[Math.floor(Math.random() * tips.length)];
-    setTipOfTheDay(randomTip);
+      const randomTip = tips[Math.floor(Math.random() * tips.length)];
+      setTipOfTheDay(randomTip);
 
-     const fetchData = async () => {
+      // try to get user
       try {
-        const data = await getFinancialSummary();
-        setSummary(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-
-      try {
-        // Try to load user (auth check)
         const me = await userService.getUser(); // returns { user, profile }
         const u = me?.user || me;
         setUser({
@@ -70,10 +67,11 @@ export default function Home() {
           email: u?.email || "",
         });
         setIsAuthed(true);
-      } catch (e) {
+      } catch {
         setIsAuthed(false);
       }
 
+      // finance summary only if authed
       try {
         if (isAuthed) {
           const data = await getFinancialSummary();
@@ -82,13 +80,42 @@ export default function Home() {
           setSummary(null);
         }
       } catch (err) {
-        // If summary needs auth, we’ll likely see 401 here
         setError(err?.response?.data?.msg || err.message);
       } finally {
         setLoading(false);
       }
     };
+
+    // 🔹 Fetch Finnhub news (always – also for guests)
+    const fetchNews = async () => {
+      setNewsLoading(true);
+      setNewsError("");
+      try {
+        const res = await fetch(
+          `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_KEY}`
+        );
+        if (!res.ok) throw new Error(`News HTTP ${res.status}`);
+        const data = await res.json();
+        const items = (data || []).slice(0, 12).map((n) => ({
+          id: `${n.id || n.datetime}-${n.url}`,
+          headline: n.headline,
+          summary: n.summary,
+          source: n.source,
+          url: n.url,
+          image: n.image,
+          datetime: n.datetime, // seconds epoch
+          category: n.category,
+        }));
+        setNews(items);
+      } catch (e) {
+        setNewsError("Failed to load market news");
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+
     fetchAll();
+    fetchNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed]);
 
@@ -102,15 +129,105 @@ export default function Home() {
 
   const income = summary?.income ?? 0;
   const expenses = summary?.expenses ?? 0;
-  const net = summary?.netBalance ?? (income - expenses);
+  const net = summary?.netBalance ?? income - expenses;
 
   if (loading) return <CircularProgress />;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (error && isAuthed) return <Alert severity="error">{error}</Alert>;
+
+  // 🔹 Reusable News Card (uses Finnhub state, shown for everyone)
+  const NewsSection = (
+    <Grid item xs={12}>
+      <Card
+        elevation={0}
+        sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider" }}
+      >
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Latest Financial News
+          </Typography>
+
+          {newsLoading && <CircularProgress size={24} />}
+          {newsError && <Alert severity="error">{newsError}</Alert>}
+
+          {!newsLoading && !newsError && news.length === 0 && (
+            <Typography color="text.secondary">No news right now.</Typography>
+          )}
+
+          {!newsLoading && !newsError && news.length > 0 && (
+            <Grid container spacing={2}>
+              {news.map((item) => (
+                <Grid item xs={12} sm={6} md={4} key={item.id}>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    {item.image ? (
+                      <CardMedia
+                        component="img"
+                        height="140"
+                        image={item.image}
+                        alt={item.headline}
+                        sx={{ objectFit: "cover" }}
+                      />
+                    ) : null}
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Chip
+                        label={item.source}
+                        size="small"
+                        variant="outlined"
+                        sx={{ mb: 1 }}
+                      />
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={700}
+                        gutterBottom
+                        sx={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                      >
+                        <Link href={item.url} target="_blank" rel="noopener" underline="hover">
+                          {item.headline}
+                        </Link>
+                      </Typography>
+                      {item.summary ? (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {item.summary}
+                        </Typography>
+                      ) : null}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mt: 1 }}
+                      >
+                        {new Date((item.datetime || 0) * 1000).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </CardContent>
+      </Card>
+    </Grid>
+  );
 
   return (
     <Box sx={{ flexGrow: 1, px: { xs: 1, sm: 2 }, pb: 4 }}>
-      <br/>
-      <br/>
+      <br />
+      <br />
       {/* Welcome Hero */}
       <Box
         sx={{
@@ -184,7 +301,7 @@ export default function Home() {
         />
       </Box>
 
-      {/* If not logged in — show CTA and stop here */}
+      {/* If not logged in — keep CTA, but still show news below */}
       {!isAuthed && (
         <Card
           elevation={0}
@@ -193,6 +310,7 @@ export default function Home() {
             border: "1px solid",
             borderColor: "divider",
             p: 3,
+            mb: 3,
           }}
         >
           <CardContent>
@@ -368,8 +486,8 @@ export default function Home() {
             </Grid>
           </Grid>
 
-          {/* Lower Row: Recent transactions + Tip + News */}
-          <Grid container spacing={2.5}>
+          {/* Lower Row: Recent transactions + Tip */}
+          <Grid container spacing={2.5} sx={{ mb: 3 }}>
             <Grid item xs={12} md={7}>
               <Card
                 elevation={0}
@@ -408,66 +526,28 @@ export default function Home() {
               </Card>
             </Grid>
 
-<Grid item xs={12} md={5}>
-  <Card
-    elevation={0}
-    sx={{
-      borderRadius: 3,
-      border: "1px solid",
-      borderColor: "divider",
-      background:
-        "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)",
-    }}
-  >
-    <CardContent>
-      <Typography variant="h6" gutterBottom>
-        Financial Tip of the Day
-      </Typography>
-
-      {Array.isArray(tips) && tips.length > 0 ? (
-        <Typography variant="body1">
-          {tipOfTheDay || tips[Math.floor(Math.random() * tips.length)]}
-        </Typography>
-      ) : (
-        <Typography color="text.secondary">
-          No tips found in tips.json.
-        </Typography>
-      )}
-    </CardContent>
-  </Card>
-</Grid>
-
-
-
-            <Grid item xs={12}>
+            <Grid item xs={12} md={5}>
               <Card
                 elevation={0}
-                sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider" }}
+                sx={{
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  background:
+                    "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)",
+                }}
               >
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Latest Financial News
+                    Financial Tip of the Day
                   </Typography>
-                  {summary?.news?.length ? (
-                    <div style={{ maxHeight: 320, overflow: "auto" }}>
-                      {summary.news.map((item, index) => (
-                        <Box key={index} sx={{ mb: 2 }}>
-                          <Typography variant="subtitle1">{item.title}</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.summary}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Source: {item.source} •{" "}
-                            {new Date(item.timePublished).toLocaleString()}
-                          </Typography>
-                          {index < summary.news.length - 1 && <Divider sx={{ mt: 1 }} />}
-                        </Box>
-                      ))}
-                    </div>
-                  ) : (
-                    <Typography color="text.secondary">
-                      News feed isn’t available right now.
+
+                  {Array.isArray(tips) && tips.length > 0 ? (
+                    <Typography variant="body1">
+                      {tipOfTheDay || tips[Math.floor(Math.random() * tips.length)]}
                     </Typography>
+                  ) : (
+                    <Typography color="text.secondary">No tips found in tips.json.</Typography>
                   )}
                 </CardContent>
               </Card>
@@ -475,6 +555,11 @@ export default function Home() {
           </Grid>
         </>
       )}
+
+      {/* 🔹 News section: visible for BOTH guests and authed users */}
+      <Grid container spacing={2.5}>
+        {NewsSection}
+      </Grid>
     </Box>
   );
 }
