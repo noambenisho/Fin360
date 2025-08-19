@@ -22,6 +22,7 @@ import { keyframes } from "@mui/system";
 
 import { getFinancialSummary } from "../services/financeService.jsx";
 import * as userService from "../services/userService"; // uses your Profile page service
+import tips from "../context/tips.json"; // 👈 import tips JSON
 
 // More noticeable hero animation: gentle float + glow pulse
 const floatGlow = keyframes`
@@ -36,11 +37,28 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAuthed, setIsAuthed] = useState(false);
+  const [tipOfTheDay, setTipOfTheDay] = useState("");
+
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       setError("");
+
+    const randomTip = tips[Math.floor(Math.random() * tips.length)];
+    setTipOfTheDay(randomTip);
+
+     const fetchData = async () => {
+      try {
+        const data = await getFinancialSummary();
+        setSummary(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
 
       try {
         // Try to load user (auth check)
@@ -85,6 +103,9 @@ export default function Home() {
   const income = summary?.income ?? 0;
   const expenses = summary?.expenses ?? 0;
   const net = summary?.netBalance ?? (income - expenses);
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Box sx={{ flexGrow: 1, px: { xs: 1, sm: 2 }, pb: 4 }}>
@@ -387,33 +408,36 @@ export default function Home() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={5}>
-              <Card
-                elevation={0}
-                sx={{
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)",
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Financial Tip of the Day
-                  </Typography>
-                  {summary?.tip?.content ? (
-                    <Typography variant="body1">{summary.tip.content}</Typography>
-                  ) : Array.isArray(summary?.tips) && summary.tips.length ? (
-                    <Typography variant="body1">{summary.tips[0]}</Typography>
-                  ) : (
-                    <Typography color="text.secondary">
-                      Tips will appear as your data grows.
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+<Grid item xs={12} md={5}>
+  <Card
+    elevation={0}
+    sx={{
+      borderRadius: 3,
+      border: "1px solid",
+      borderColor: "divider",
+      background:
+        "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)",
+    }}
+  >
+    <CardContent>
+      <Typography variant="h6" gutterBottom>
+        Financial Tip of the Day
+      </Typography>
+
+      {Array.isArray(tips) && tips.length > 0 ? (
+        <Typography variant="body1">
+          {tipOfTheDay || tips[Math.floor(Math.random() * tips.length)]}
+        </Typography>
+      ) : (
+        <Typography color="text.secondary">
+          No tips found in tips.json.
+        </Typography>
+      )}
+    </CardContent>
+  </Card>
+</Grid>
+
+
 
             <Grid item xs={12}>
               <Card
