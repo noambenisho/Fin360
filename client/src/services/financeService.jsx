@@ -89,3 +89,37 @@ export const compareMortgageInvestment = async (data) => {
     throw new Error(errMsg(error, "Failed to compare mortgage and investment"));
   }
 };
+
+/* ---------- Comparison (Mortgage vs Investment) ---------- */
+
+const API_COMPARISONS = "http://localhost:5000/api/comparisons";
+
+/**
+ * Save a new mortgage vs investment comparison
+ * @param {Object} data - { input, results, monthlyBreakdown }
+ */
+export const saveComparison = async (data) => {
+  try {
+    const { data: res } = await axios.post(API_COMPARISONS, data, {
+      // אם אתה משתמש בטוקן:
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    return res;
+  } catch (error) {
+    throw new Error(errMsg(error, "Failed to save comparison"));
+  }
+};
+
+/**
+ * Get all comparisons for the current user
+ */
+export const getUserComparisons = async () => {
+  try {
+    const { data } = await axios.get(API_COMPARISONS, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(errMsg(error, "Failed to fetch comparisons"));
+  }
+};

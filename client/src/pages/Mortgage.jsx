@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { LineChart } from "@mui/x-charts";
+import { saveComparison } from "../services/financeService.jsx";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -70,7 +71,7 @@ export default function Mortgage() {
     setFeedback({ open: true, message, severity });
   };
 
-  const calculate = () => {
+  const calculate = async () => {
     const {
       initialHousePrice,
       downPayment,
@@ -179,6 +180,40 @@ export default function Mortgage() {
       monthlyInvestment,
       comparison: investNetWorthFinal - buyNetWorthFinal, // >0 = investment advantage
     });
+
+    const comparisonResults = {
+      mortgage: {
+        totalPaid,
+        totalInterest,
+        balance,
+        houseValue,
+        finalEquity,
+        totalRentalIncome,
+      },
+      investment: {
+        finalValue: investValue,
+        totalContribution: formData.initialInvestment + monthlyInvestment * months,
+        totalGrowth: investValue - (formData.initialInvestment + monthlyInvestment * months),
+      },
+      comparison: investNetWorthFinal - buyNetWorthFinal,
+    };
+
+    const monthlyBreakdown = {
+      buyNetWorth: buyNetWorthOverTime,
+      investNetWorth: investNetWorthOverTime,
+    };
+
+    try {
+      await saveComparison({
+        input: formData,
+        results: comparisonResults,
+        monthlyBreakdown,
+      });
+      showFeedback("Comparison saved successfully!", "success");
+    } catch (err) {
+      console.error(err);
+      showFeedback("Failed to save comparison", "error");
+    }
   };
 
   return (
