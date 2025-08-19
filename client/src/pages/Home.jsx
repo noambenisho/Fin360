@@ -213,7 +213,7 @@ export default function Home() {
                       <TrendingUpOutlinedIcon />
                     </Avatar>
                     <Typography variant="h6" color="text.secondary">
-                      Monthly Income
+                      Income
                     </Typography>
                   </Box>
                   <Typography variant="h4" fontWeight={700}>
@@ -238,7 +238,7 @@ export default function Home() {
                       <TrendingDownOutlinedIcon />
                     </Avatar>
                     <Typography variant="h6" color="text.secondary">
-                      Monthly Expenses
+                      Expenses
                     </Typography>
                   </Box>
                   <Typography variant="h4" fontWeight={700}>

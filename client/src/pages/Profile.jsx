@@ -265,10 +265,6 @@ export default function Profile() {
 
                     <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
 
-                    {/* Profile fields */}
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle1">Financial Fields (saved to Profile)</Typography>
-                    </Grid>
 
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -409,10 +405,10 @@ export default function Profile() {
                 <Typography variant="h6">Financial Status</Typography>
                 <Typography variant="subtitle1" gutterBottom>
                   <MonetizationOn color="primary" sx={{ mr: 1 }} />
-                  Yearly Savings Goal: {profile?.yearlySavingsGoal ? `$${Number(profile.yearlySavingsGoal).toLocaleString()}` : "Not set"}
+                  Yearly Savings Goal: {profile?.yearlySavingsGoal ? `₪${Number(profile.yearlySavingsGoal).toLocaleString()}` : "Not set"}
                 </Typography>
                 <Typography>
-                  Current progress: ${Number(profile?.savings || 0).toLocaleString()} ({profile?.yearlySavingsGoal ? `${Math.min(((profile.savings || 0) / profile.yearlySavingsGoal) * 100, 100).toFixed(1)}%` : "0%"})
+                  Current progress: ₪{Number(profile?.savings || 0).toLocaleString()} ({profile?.yearlySavingsGoal ? `${Math.min(((profile.savings || 0) / profile.yearlySavingsGoal) * 100, 100).toFixed(1)}%` : "0%"})
                 </Typography>
               </CardContent>
             </Card>
@@ -423,10 +419,10 @@ export default function Profile() {
               <CardContent>
                 <Typography variant="h6">Summary</Typography>
                 <Divider sx={{ my: 2 }} />
-                <Typography>Monthly Income: ${Number(profile?.monthlyIncome || 0).toLocaleString()}</Typography>
-                <Typography>Monthly Expenses: ${Number(profile?.monthlyExpenses || 0).toLocaleString()}</Typography>
-                <Typography>Current Savings: ${Number(profile?.savings || 0).toLocaleString()}</Typography>
-                <Typography>Monthly Investment: ${Number(profile?.monthlyInvestment || 0).toLocaleString()}</Typography>
+                <Typography>Monthly Income: ₪{Number(profile?.monthlyIncome || 0).toLocaleString()}</Typography>
+                <Typography>Monthly Expenses: ₪{Number(profile?.monthlyExpenses || 0).toLocaleString()}</Typography>
+                <Typography>Current Savings: ₪{Number(profile?.savings || 0).toLocaleString()}</Typography>
+                <Typography>Monthly Investment: ₪{Number(profile?.monthlyInvestment || 0).toLocaleString()}</Typography>
               </CardContent>
             </Card>
           </Grid>
