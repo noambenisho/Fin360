@@ -22,19 +22,15 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
     try {
       const response = await loginUser({ email, password });
-      // Clear any existing tokens before setting new ones
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
-
       login(response.token, rememberMe);
       navigate("/");
     } catch (err) {
@@ -45,12 +41,19 @@ export default function Login() {
   return (
     <Box
       sx={{
+    borderLeft: {
+          xs: "0px solid transparent",   // no left space on phones
+          sm: "150px solid #e0e0e0",     // smaller gap on tablets
+          md: "350px solid #e0e0e0",     // medium screens
+          lg: "480px solid #e0e0e0",     // large screens
+        },        
         minHeight: "100vh",
-        background: "linear-gradient(to right, #f0f4f8, #d9e4ec)",
+        // background: "linear-gradient(to right, #f0f4f8, #d9e4ec)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         p: 2,
+        width: "100%",
       }}
     >
       <CssBaseline />
@@ -60,7 +63,7 @@ export default function Login() {
           p: 4,
           borderRadius: 4,
           width: "100%",
-          maxWidth: 400,
+          maxWidth: 420,
           backgroundColor: "white",
           display: "flex",
           flexDirection: "column",
@@ -73,12 +76,8 @@ export default function Login() {
         <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
           Sign In
         </Typography>
-        <Box
-          component="form"
-          noValidate
-          onSubmit={handleSubmit}
-          sx={{ width: "100%" }}
-        >
+
+        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: "100%" }}>
           <TextField
             margin="normal"
             required
@@ -122,30 +121,18 @@ export default function Login() {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{
-              mt: 3,
-              mb: 2,
-              py: 1.5,
-              fontSize: "1rem",
-              borderRadius: 2,
-            }}
+            sx={{ mt: 3, mb: 2, py: 1.5, borderRadius: 2 }}
           >
             Sign In
           </Button>
           <Grid container justifyContent="space-between">
             <Grid item>
-              <Link
-                to="/forgot-password"
-                style={{ textDecoration: "none", color: "#1976d2" }}
-              >
+              <Link to="/forgot-password" style={{ textDecoration: "none", color: "#1976d2" }}>
                 Forgot password?
               </Link>
             </Grid>
             <Grid item>
-              <Link
-                to="/register"
-                style={{ textDecoration: "none", color: "#1976d2" }}
-              >
+              <Link to="/register" style={{ textDecoration: "none", color: "#1976d2" }}>
                 Don't have an account? Sign Up
               </Link>
             </Grid>
